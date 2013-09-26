@@ -22,17 +22,9 @@ public class SendReceiveService extends Service {
 	public static final String SENT_SMS_ACTION = "SentSMSAction";
 	public static final String DELIVERED_SMS_ACTION = "org.thoughtcrime.securesms.SendReceiveService.DELIVERED_SMS_ACTION";
 	public static final String RECEIVE_SMS_ACTION = "org.thoughtcrime.securesms.SendReceiveService.RECEIVE_SMS_ACTION";
-	public static final String SEND_MMS_ACTION = "org.thoughtcrime.securesms.SendReceiveService.SEND_MMS_ACTION";
-	public static final String SEND_MMS_CONNECTIVITY_ACTION = "org.thoughtcrime.securesms.SendReceiveService.SEND_MMS_CONNECTIVITY_ACTION";
-	public static final String RECEIVE_MMS_ACTION = "org.thoughtcrime.securesms.SendReceiveService.RECEIVE_MMS_ACTION";
-	public static final String DOWNLOAD_MMS_ACTION = "org.thoughtcrime.securesms.SendReceiveService.DOWNLOAD_MMS_ACTION";
-	public static final String DOWNLOAD_MMS_CONNECTIVITY_ACTION = "org.thoughtcrime.securesms.SendReceiveService.DOWNLOAD_MMS_CONNECTIVITY_ACTION";
 
 	private static final int SEND_SMS = 0;
 	private static final int RECEIVE_SMS = 1;
-	private static final int SEND_MMS = 2;
-	private static final int RECEIVE_MMS = 3;
-	private static final int DOWNLOAD_MMS = 4;
 	
 	// intent others
 	private final String INTENT_SOURCE = "Source";

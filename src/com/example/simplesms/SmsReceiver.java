@@ -10,6 +10,7 @@ import android.util.Base64;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.telephony.SmsMessage;
 import android.util.Log;
@@ -17,6 +18,14 @@ import android.util.Log;
 public class SmsReceiver extends BroadcastReceiver {
 	// debugging
 	private final String TAG = "SmsReceiver";
+	
+	// SharedPreferences
+	private final String PREFS = "PublicKeyRecipient";
+	private final String PREF_PUBLIC_MOD = "PublicModulus";
+	private final String PREF_PUBLIC_EXP = "PublicExponent";
+	private final String PREF_PHONE_NUMBER = "PhoneNumber";
+	
+	private final String DEFAULT_PREF = "";
 	
 	private final String KEY_EXCHANGE_CODE = "keyx";
 	
@@ -31,39 +40,56 @@ public class SmsReceiver extends BroadcastReceiver {
         		
         		Log.i(TAG, "message received is "+ message);
         		
-        		handleMessage(message, sender);
+        		handleMessage(message, sender, context);
         	}
         }
 		
 		
 	}
 	
-	private void handleMessage(String message, String sender) {
+	private void handleMessage(String message, String sender, Context context) {
 		if (message.startsWith(KEY_EXCHANGE_CODE)) {
 			Log.i(TAG, "message received is a key exchange message");
-			handleKeyExchangeMsg(message, sender);
+			handleKeyExchangeMsg(message, sender, context);
 		} else {
 			Log.i(TAG, "received a secure text message");
 			// TODO handle secure text message
 		}
 	}
 	
-	private void handleKeyExchangeMsg(String message, String sender) {
+	/*
+	 * the sender here is actually the recipient of future encrypted text messages
+	 * the recipient's public key will be used to encrypt the future text messages
+	 * so that the recipient can use his/ her private key to decrypt the messages upon receiving them
+	 */
+	private void handleKeyExchangeMsg(String message, String sender, Context context) {
 		// TODO get the modulus and exponent of the public key of the sender & reconstruct the public key
+		String recipient = sender;
 		String[] parts = message.split(" ");
 		if (parts.length==3) {
-			String senderPubModBase64Str = parts[1];
-			String senderPubExpBase64Str = parts[2];
+			String recipientPubModBase64Str = parts[1];
+			String recipientPubExpBase64Str = parts[2];
 			
-			byte[] senderPubModBA = Base64.decodeBase64(senderPubModBase64Str);
-			BigInteger senderPubMod = new BigInteger(senderPubModBA);
+			byte[] recipientPubModBA = Base64.decode(recipientPubModBase64Str, Base64.DEFAULT);
+			byte[] recipientPubExpBA = Base64.decode(recipientPubExpBase64Str, Base64.DEFAULT);
+			BigInteger recipientPubMod = new BigInteger(recipientPubModBA);
+			BigInteger recipientPubExp = new BigInteger(recipientPubExpBA);
 			
-			Log.i(TAG, "the public key module of the sender is "+senderPubMod);
+			Log.i(TAG, "the recipient's public key modulus is "+recipientPubMod + " and exponent is "+recipientPubExp);
+			
+			
+			// TODO store the intended recipient's public key in the app's SharedPreferences
+			SharedPreferences prefs = context.getSharedPreferences(PREFS,
+					Context.MODE_PRIVATE);
+			SharedPreferences.Editor prefsEditor = prefs.edit();
+
+			prefsEditor.putString(PREF_PUBLIC_MOD, recipientPubModBase64Str);
+			prefsEditor.putString(PREF_PUBLIC_EXP, recipientPubExpBase64Str);
+			prefsEditor.putString(PREF_PHONE_NUMBER, recipient);
+			prefsEditor.commit();
 		} else {
 			Log.e(TAG, "something is wrong with the key exchange message, it's supposed to have 3 parts: the code 'keyx', the modulus and the exponent");
 		}
-		
-		// TODO store the public key received from the sender
 		
 		
 	}

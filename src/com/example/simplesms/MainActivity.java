@@ -5,15 +5,22 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 
 import android.os.Bundle;
 import android.os.IBinder;
@@ -31,7 +38,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.Toast;
 
-import org.apache.commons.codec.binary.Hex;
 //import org.apache.commons.codec.binary.Base64;
 import android.util.Base64;
 
@@ -40,7 +46,7 @@ public class MainActivity extends Activity {
 	private final String TAG = "MainActivity";
 
 	// sharedpreference
-	private final String PREFS = "MySecureSMS";
+	private final String PREFS = "MyKeys";
 	private final String PREF_PUBLIC_MOD = "PublicModulus";
 	private final String PREF_PUBLIC_EXP = "PublicExponent";
 	private final String PREF_PRIVATE_MOD = "PrivateModulus";
@@ -48,11 +54,14 @@ public class MainActivity extends Activity {
 
 	private final String DEFAULT_PREF = "";
 
+	private final String PREFS_RECIPIENT = "PublicKeyRecipient";
+	private final String PREF_RECIPIENT_NUM = "PhoneNumber";
+
 	// intents
 	private final String INTENT_SOURCE = "Source";
 
 	// others
-	private final String DES_NUM = "96147928";
+	private final String DES_NUM = "93628809";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -101,8 +110,11 @@ public class MainActivity extends Activity {
 
 		// TODO to encrypt a message using the private key and send via sms &
 		// send a digital signature
-		
+
 		registerReceivers();
+
+		String message = "I want to be a billionaire";
+		sendEncryptedMessage(message);
 
 	}
 
@@ -155,7 +167,7 @@ public class MainActivity extends Activity {
 	public void saveToPref(String pref, BigInteger num) {
 		String st = new String(num.toByteArray());
 
-		//Log.i(TAG, "modulus/ exponent length in bytes is " + st.length());
+		// Log.i(TAG, "modulus/ exponent length in bytes is " + st.length());
 		SharedPreferences prefs = getSharedPreferences(PREFS,
 				Context.MODE_PRIVATE);
 		SharedPreferences.Editor prefsEditor = prefs.edit();
@@ -283,7 +295,7 @@ public class MainActivity extends Activity {
 			Log.i(TAG, "keys found, not regenerating");
 			keysExist = true;
 		} else {
-			
+
 			keysExist = false;
 		}
 		if (!keysExist) {
@@ -306,132 +318,231 @@ public class MainActivity extends Activity {
 				RSAPrivateKeySpec priv = fact.getKeySpec(privateKey,
 						RSAPrivateKeySpec.class);
 
-				// Not sure if it's a better idea to save the keys to text file
-				// or sharedpreference
-				
-				/*saveToPref(PREF_PUBLIC_MOD, pub.getModulus());
-				saveToPref(PREF_PUBLIC_EXP, pub.getPublicExponent());
-				saveToPref(PREF_PRIVATE_MOD, priv.getModulus());
-				saveToPref(PREF_PRIVATE_EXP, priv.getPrivateExponent());*/
-
 				/*
-				 * Sending the key pair to the intended recipient/ server
+				 * save the public key to the app's SharedPreferences and send
+				 * it via SMS to the intended recipient
 				 */
-				BigInteger pubModBI = pub.getModulus();
-				BigInteger pubExpBI = pub.getPublicExponent();
-				byte[] pubModBA = pubModBI.toByteArray();//Base64.encodeInteger(pubModBI); // for some strange reason this throws NoSuchMethodError
-				byte[] pubExpBA = pubExpBI.toByteArray();//Base64.encodeInteger(pubExpBI);
-				
-				//String pubModHexStr;
-				//String pubModBase64Str = new String(Base64.encodeBase64(pubModBA));
-				String pubModBase64Str = Base64.encodeToString(pubModBA, Base64.DEFAULT); 
-				String pubExpBase64Str = Base64.encodeToString(pubExpBA, Base64.DEFAULT);
-				
-				/*try {
-					//String pubModHexStr = Hex.encodeHexString(pubModBA); // for some strange reason this throws NoSuchMethodError
-					pubModHexStr = new String(Hex.encodeHex(pubModBA));
-					pubModBase64Str = Base64.encodeBase64String(pubModBA);
-					Log.i(TAG, "the public key modulus expressed in base64 string is "+pubModBase64Str);
-				} catch (Exception e) {
-					Log.e(TAG, "could not encode the public key modulus ", e);
-				}*/
-				
-				String msg = "keyx "+pubModBase64Str+" "+pubExpBase64Str;
-				Log.i(TAG, "the message after encoded to base64 is: '"+msg+ "' and its length is "+msg.length());
-				
-				/*char unitSeparator = 0x1F;
-				String unitSeparatorStr = Character.toString(unitSeparator);
-				msg = msg + unitSeparatorStr;
+				handlePublicKey(pub);
+				/*
+				 * save the private key to the app's SharedPreferences
+				 */
+				savePrivateKey(priv);
 
-				String publicModString = prefs.getString(PREF_PUBLIC_MOD,
-						DEFAULT_PREF);
-				String publicExpString = prefs.getString(PREF_PUBLIC_EXP,
-						DEFAULT_PREF);
-				msg += publicModString + unitSeparatorStr + publicExpString;*/
-				
-				
-
-				// Log.i(TAG, "length of public key modulus is " +
-				// publicModString.length());
-				//Log.i(TAG, "the message being sent is " + msg);
-				//Log.i(TAG, "the separator charactor found in our message "+ countOcc(msg, unitSeparator)+" times");
-				if (msg.length() > 160) {
-					sendLongSMS(DES_NUM, msg);
-				} else {
-					sendSMS(DES_NUM, msg);
-				}
 			} catch (NoSuchAlgorithmException e) {
 				Log.e(TAG, "RSA algorithm not available", e);
 			} catch (InvalidKeySpecException e) {
 				Log.e(TAG, "", e);
-			} /*
+			}
+			/*
 			 * catch (IOException e) { Log.e(TAG,
 			 * "Having trouble saving key file", e); }
 			 */
 		} else {
 			byte[] curPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
+			byte[] curPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			BigInteger curPubMod = new BigInteger(curPubModBA);
-			
-			Log.i(TAG, "the current user's public key module is "+curPubMod);
+			BigInteger curPubExp = new BigInteger(curPubExpBA);
+
+			Log.i(TAG, "the current user's stored public key modulus is "
+					+ curPubMod + " while the exponent is " + curPubExp);
 		}
 
 	}
-	
+
+	public void handlePublicKey(RSAPublicKeySpec publicKey) {
+		BigInteger pubModBI = publicKey.getModulus();
+		BigInteger pubExpBI = publicKey.getPublicExponent();
+		Log.i(TAG, "the modulus of the current user's public key is "
+				+ pubModBI + " and the exponent is " + pubExpBI);
+		byte[] pubModBA = pubModBI.toByteArray();// Base64.encodeInteger(pubModBI);
+													// // for some strange
+													// reason this throws
+													// NoSuchMethodError
+		byte[] pubExpBA = pubExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
+
+		try {
+			String pubModBase64Str = Base64.encodeToString(pubModBA,
+					Base64.DEFAULT);
+			String pubExpBase64Str = Base64.encodeToString(pubExpBA,
+					Base64.DEFAULT);
+
+			savePublicKey(pubModBase64Str, pubExpBase64Str);
+
+			sharePublicKey(pubModBase64Str, pubExpBase64Str);
+		} catch (NoSuchMethodError e) {
+			Log.e(TAG, "Base64.encode() method not available", e);
+		}
+	}
+
+	public void savePublicKey(String mod, String exp) {
+		SharedPreferences prefs = getSharedPreferences(PREFS,
+				Context.MODE_PRIVATE);
+		SharedPreferences.Editor prefsEditor = prefs.edit();
+
+		prefsEditor.putString(PREF_PUBLIC_MOD, mod);
+		prefsEditor.putString(PREF_PUBLIC_EXP, exp);
+		// prefsEditor.putString(PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
+		prefsEditor.commit();
+	}
+
+	public void sharePublicKey(String mod, String exp) {
+		String msg = "keyx " + mod + " " + exp;
+		Log.i(TAG, "the message after encoded to base64 is: '" + msg
+				+ "' and its length is " + msg.length());
+
+		if (msg.length() > 160) {
+			sendLongSMS(DES_NUM, msg);
+		} else {
+			sendSMS(DES_NUM, msg);
+		}
+	}
+
+	public void savePrivateKey(RSAPrivateKeySpec privateKey) {
+		BigInteger privateModBI = privateKey.getModulus();
+		BigInteger privateExpBI = privateKey.getPrivateExponent();
+		Log.i(TAG, "the modulus of the current user's private key is "
+				+ privateModBI + " and the exponent is " + privateExpBI);
+		byte[] privateModBA = privateModBI.toByteArray();// Base64.encodeInteger(pubModBI);
+															// // for some
+															// strange reason
+															// this throws
+															// NoSuchMethodError
+		byte[] privateExpBA = privateExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
+
+		try {
+			String privateModBase64Str = Base64.encodeToString(privateModBA,
+					Base64.DEFAULT);
+			String privateExpBase64Str = Base64.encodeToString(privateExpBA,
+					Base64.DEFAULT);
+
+			SharedPreferences prefs = getSharedPreferences(PREFS,
+					Context.MODE_PRIVATE);
+			SharedPreferences.Editor prefsEditor = prefs.edit();
+
+			prefsEditor.putString(PREF_PRIVATE_MOD, privateModBase64Str);
+			prefsEditor.putString(PREF_PRIVATE_EXP, privateExpBase64Str);
+			// prefsEditor.putString(PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
+			prefsEditor.commit();
+		} catch (NoSuchMethodError e) {
+			Log.e(TAG, "Base64.encode() method not available", e);
+		}
+	}
+
+	public void sendEncryptedMessage(String msg) {
+		Log.i(TAG,
+				"original message is '" + msg + "' with length " + msg.length());
+		// reconstruct the public key of the intended recipient providing the
+		// modulus and exponent are stored in the app's SharedPreferences
+
+		SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
+				Context.MODE_PRIVATE);
+		
+
+		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
+		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		String recipient = prefs.getString(PREF_RECIPIENT_NUM, DEFAULT_PREF);
+		if (!pubMod.equals(DEFAULT_PREF)&&!pubExp.equals(DEFAULT_PREF)) {
+			byte[] curPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
+			byte[] curPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
+			BigInteger curPubMod = new BigInteger(curPubModBA);
+			BigInteger curPubExp = new BigInteger(curPubExpBA);
+
+			RSAPublicKeySpec keySpec = new RSAPublicKeySpec(curPubMod,
+					curPubExp);
+			try {
+				KeyFactory fact = KeyFactory.getInstance("RSA");
+
+				PublicKey pubKey = fact.generatePublic(keySpec);
+
+				// TODO encrypt the message and send it
+				Cipher cipher = Cipher.getInstance("RSA");
+				cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+				byte[] msgByteArray = msg.getBytes();
+				byte[] cipherData = cipher.doFinal(msgByteArray);
+
+				String encryptedMsg = new String(cipherData);
+				Log.i(TAG, "encrypted message is : '" + encryptedMsg
+						+ "' with length " + encryptedMsg.length() + " being sent to "+recipient);
+				if (encryptedMsg.length() > 160) {
+					sendLongSMS(recipient, encryptedMsg);
+				} else {
+					sendSMS(recipient, encryptedMsg);
+				}
+
+			} catch (NoSuchAlgorithmException e) {
+				Log.e(TAG, "RSA algorithm not available", e);
+			} catch (InvalidKeySpecException e) {
+				Log.e(TAG, "", e);
+			} catch (NoSuchPaddingException e) {
+				Log.e(TAG, "", e);
+			} catch (InvalidKeyException e) {
+				Log.e(TAG, "", e);
+			} catch (BadPaddingException e) {
+				Log.e(TAG, "", e);
+			} catch (IllegalBlockSizeException e) {
+				Log.e(TAG, "", e);
+			}
+		} else {
+			Log.i(TAG,
+					"can't send the message yet since the intended recipient's public key is not known");
+		}
+	}
+
 	private void registerReceivers() {
 		String SENT = "SMS_SENT";
 		String DELIVERED = "SMS_DELIVERED";
 		// ---when the SMS has been sent---
-				registerReceiver(new BroadcastReceiver() {
-					@Override
-					public void onReceive(Context arg0, Intent arg1) {
-						switch (getResultCode()) {
-						case Activity.RESULT_OK:
-							Toast.makeText(getBaseContext(), "SMS sent",
-									Toast.LENGTH_SHORT).show();
-							Log.i(TAG, "SMS sent");
+		registerReceiver(new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context arg0, Intent arg1) {
+				switch (getResultCode()) {
+				case Activity.RESULT_OK:
+					Toast.makeText(getBaseContext(), "SMS sent",
+							Toast.LENGTH_SHORT).show();
+					Log.i(TAG, "SMS sent");
 
-							break;
-						case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-							Toast.makeText(getBaseContext(), "Generic failure",
-									Toast.LENGTH_SHORT).show();
-							Log.w(TAG, "Generic failure");
-							break;
-						case SmsManager.RESULT_ERROR_NO_SERVICE:
-							Toast.makeText(getBaseContext(), "No service",
-									Toast.LENGTH_SHORT).show();
-							Log.w(TAG, "No service");
-							break;
-						case SmsManager.RESULT_ERROR_NULL_PDU:
-							Toast.makeText(getBaseContext(), "Null PDU",
-									Toast.LENGTH_SHORT).show();
-							Log.w(TAG, "Null PDU");
-							break;
-						case SmsManager.RESULT_ERROR_RADIO_OFF:
-							Toast.makeText(getBaseContext(), "Radio off",
-									Toast.LENGTH_SHORT).show();
-							Log.w(TAG, "Radio off");
-							break;
-						}
-					}
-				}, new IntentFilter(SENT));
+					break;
+				case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
+					Toast.makeText(getBaseContext(), "Generic failure",
+							Toast.LENGTH_SHORT).show();
+					Log.w(TAG, "Generic failure");
+					break;
+				case SmsManager.RESULT_ERROR_NO_SERVICE:
+					Toast.makeText(getBaseContext(), "No service",
+							Toast.LENGTH_SHORT).show();
+					Log.w(TAG, "No service");
+					break;
+				case SmsManager.RESULT_ERROR_NULL_PDU:
+					Toast.makeText(getBaseContext(), "Null PDU",
+							Toast.LENGTH_SHORT).show();
+					Log.w(TAG, "Null PDU");
+					break;
+				case SmsManager.RESULT_ERROR_RADIO_OFF:
+					Toast.makeText(getBaseContext(), "Radio off",
+							Toast.LENGTH_SHORT).show();
+					Log.w(TAG, "Radio off");
+					break;
+				}
+			}
+		}, new IntentFilter(SENT));
 
-				// ---when the SMS has been delivered---
-				registerReceiver(new BroadcastReceiver() {
-					@Override
-					public void onReceive(Context arg0, Intent arg1) {
-						switch (getResultCode()) {
-						case Activity.RESULT_OK:
-							Toast.makeText(getBaseContext(), "SMS delivered",
-									Toast.LENGTH_SHORT).show();
-							Log.i(TAG, "SMS delivered");
-							break;
-						case Activity.RESULT_CANCELED:
-							Toast.makeText(getBaseContext(), "SMS not delivered",
-									Toast.LENGTH_SHORT).show();
-							Log.w(TAG, "SMS not delivered");
-							break;
-						}
-					}
-				}, new IntentFilter(DELIVERED));
+		// ---when the SMS has been delivered---
+		registerReceiver(new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context arg0, Intent arg1) {
+				switch (getResultCode()) {
+				case Activity.RESULT_OK:
+					Toast.makeText(getBaseContext(), "SMS delivered",
+							Toast.LENGTH_SHORT).show();
+					Log.i(TAG, "SMS delivered");
+					break;
+				case Activity.RESULT_CANCELED:
+					Toast.makeText(getBaseContext(), "SMS not delivered",
+							Toast.LENGTH_SHORT).show();
+					Log.w(TAG, "SMS not delivered");
+					break;
+				}
+			}
+		}, new IntentFilter(DELIVERED));
 	}
 }

@@ -4,5 +4,15 @@
     <string name="app_name">MySecureSMS</string>
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
-
+    
+    <!-- Buttons -->
+    <string name="btn_generate_keys">Generate Keys</string>
+    <string name="btn_share_key">Share Public Key</string>
+    <string name="btn_send_sms">Send</string>
+	
+    <!-- Inputs -->
+    <string name="input_text_message">Your text message here&#8230;</string>
+    
+    <!-- Debugging -->
+    <string name="debug_messages">Debug messages&#8230;</string>
 </resources>

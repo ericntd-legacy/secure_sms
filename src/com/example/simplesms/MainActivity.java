@@ -45,16 +45,18 @@ public class MainActivity extends Activity {
 	// debugging
 	private final String TAG = "MainActivity";
 
-	// sharedpreference
+	// sharedpreferences
 	private final String PREFS = "MyKeys";
+	private final String PREFS_RECIPIENT = "RecipientsKeys";
+
 	private final String PREF_PUBLIC_MOD = "PublicModulus";
 	private final String PREF_PUBLIC_EXP = "PublicExponent";
 	private final String PREF_PRIVATE_MOD = "PrivateModulus";
 	private final String PREF_PRIVATE_EXP = "PrivateExponent";
 
 	private final String DEFAULT_PREF = "";
+	private final String DEFAULT_RECIPIENT_NUM = "93628809";
 
-	private final String PREFS_RECIPIENT = "PublicKeyRecipient";
 	private final String PREF_RECIPIENT_NUM = "PhoneNumber";
 
 	// intents
@@ -82,10 +84,15 @@ public class MainActivity extends Activity {
 		 * Check if keys are found in the app's SharedPreferences if not,
 		 * generate them and save them to the app's SharedPreferences
 		 */
-		handleKeys();
+		// handleKeys();
+
+		/*
+		 * Handle the intended recipient's keys for testing
+		 */
+		handleRecipientsKeys();
 
 		// TODO to bind the activity to SendReceiveService
-		doBindService();
+		// doBindService();
 
 		// TODO to send the public key send via sms
 		// SharedPreferences prefs = getSharedPreferences(PREFS,
@@ -113,7 +120,7 @@ public class MainActivity extends Activity {
 
 		registerReceivers();
 
-		String message = "I want to be a billionaire";
+		String message = "gmstelehealth @systolic=100@ @diastolic=70@ @hr=70@";
 		sendEncryptedMessage(message);
 
 	}
@@ -285,10 +292,6 @@ public class MainActivity extends Activity {
 
 		boolean keysExist = false;
 
-		// Log.d(TAG,
-		// "public key modulus found "+(!pubMod.equals(DEFAULT_PREF))+
-		// " and it is "+pubMod);
-
 		if (!pubMod.equals(DEFAULT_PREF) && !pubExp.equals(DEFAULT_PREF)
 				&& !privateMod.equals(DEFAULT_PREF)
 				&& !privateExp.equals(DEFAULT_PREF)) {
@@ -347,6 +350,182 @@ public class MainActivity extends Activity {
 					+ curPubMod + " while the exponent is " + curPubExp);
 		}
 
+	}
+
+	/*
+	 * 
+	 */
+
+	public void handleRecipientsKeys() {
+		SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
+				Context.MODE_PRIVATE);
+		String pubModRecipient = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
+		String pubExpRecipient = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		String privateModRecipient = prefs.getString(PREF_PRIVATE_MOD,
+				DEFAULT_PREF);
+		String privateExpRecipient = prefs.getString(PREF_PRIVATE_EXP,
+				DEFAULT_PREF);
+
+		boolean recipientsKeysExist = false;
+
+		if (!pubModRecipient.equals(DEFAULT_PREF)
+				&& !pubExpRecipient.equals(DEFAULT_PREF)
+				&& !privateModRecipient.equals(DEFAULT_PREF)
+				&& !privateExpRecipient.equals(DEFAULT_PREF)) {
+			Log.i(TAG,
+					"TESTING - INTENDED RECIPIENT - The intented recipient's keys found, not regenerating");
+			recipientsKeysExist = true;
+		} else {
+
+			recipientsKeysExist = false;
+		}
+		if (!recipientsKeysExist) {
+			Log.i(TAG,
+					"TESTING - INTENDED RECIPIENT - The intented recipient's keys not found, generating now");
+			try {
+
+				/*
+				 * Generating private and public key using RSA algorithm saving
+				 * the keys to the app's shared preferences
+				 */
+				KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+				kpg.initialize(2048);
+				KeyPair kp = kpg.genKeyPair();
+				Key publicKey = kp.getPublic();
+				Key privateKey = kp.getPrivate();
+
+				KeyFactory fact = KeyFactory.getInstance("RSA");
+				RSAPublicKeySpec pub = fact.getKeySpec(publicKey,
+						RSAPublicKeySpec.class);
+				RSAPrivateKeySpec priv = fact.getKeySpec(privateKey,
+						RSAPrivateKeySpec.class);
+
+				/*
+				 * save the public key to the app's SharedPreferences and send
+				 * it via SMS to the intended recipient
+				 */
+				// handlePublicKey(pub);
+				BigInteger pubModBI = pub.getModulus();
+				BigInteger pubExpBI = pub.getPublicExponent();
+				Log.i(TAG,
+						"TESTING - INTENDED RECIPIENT - the modulus of the current user's public key is "
+								+ pubModBI + " and the exponent is " + pubExpBI);
+				byte[] pubModBA = pubModBI.toByteArray();// Base64.encodeInteger(pubModBI);
+															// // for some
+															// strange
+															// reason this
+															// throws
+															// NoSuchMethodError
+				byte[] pubExpBA = pubExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
+
+				try {
+					String pubModRecipientBase64Str = Base64.encodeToString(
+							pubModBA, Base64.DEFAULT);
+					String pubExpRecipientBase64Str = Base64.encodeToString(
+							pubExpBA, Base64.DEFAULT);
+
+					// SharedPreferences prefs =
+					// getSharedPreferences(PREFS_RECIPIENT,Context.MODE_PRIVATE);
+					SharedPreferences.Editor prefsEditor = prefs.edit();
+
+					prefsEditor.putString(PREF_PUBLIC_MOD,
+							pubModRecipientBase64Str);
+					prefsEditor.putString(PREF_PUBLIC_EXP,
+							pubExpRecipientBase64Str);
+					// prefsEditor.putString(PREF_PRIVATE_MOD,
+					// DEFAULT_PRIVATE_MOD);
+					prefsEditor.commit();
+
+					String msg = "keyx " + pubModRecipientBase64Str + " "
+							+ pubExpRecipientBase64Str;
+					Log.i(TAG,
+							"TESTING - INTENDED RECIPIENT - the message after encoded to base64 is: '"
+									+ msg + "' and its length is "
+									+ msg.length());
+
+					if (msg.length() > 160) {
+						sendLongSMS(DES_NUM, msg);
+					} else {
+						sendSMS(DES_NUM, msg);
+					}
+				} catch (NoSuchMethodError e) {
+					Log.e(TAG, "Base64.encode() method not available", e);
+				}
+
+				/*
+				 * save the private key to the app's SharedPreferences
+				 */
+				// savePrivateKey(priv);
+				BigInteger privateModBI = priv.getModulus();
+				BigInteger privateExpBI = priv.getPrivateExponent();
+				Log.i(TAG,
+						"TESTING - INTENDED RECIPIENT - the modulus of the current user's private key is "
+								+ privateModBI
+								+ " and the exponent is "
+								+ privateExpBI);
+				byte[] privateModBA = privateModBI.toByteArray();// Base64.encodeInteger(pubModBI);
+																	// // for
+																	// some
+																	// strange
+																	// reason
+																	// this
+																	// throws
+																	// NoSuchMethodError
+				byte[] privateExpBA = privateExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
+
+				try {
+					String recipientPrivateModBase64Str = Base64
+							.encodeToString(privateModBA, Base64.DEFAULT);
+					String recipientPrivateExpBase64Str = Base64
+							.encodeToString(privateExpBA, Base64.DEFAULT);
+
+					// SharedPreferences prefs =
+					// getSharedPreferences(PREFS,Context.MODE_PRIVATE);
+					SharedPreferences.Editor prefsEditor = prefs.edit();
+
+					prefsEditor.putString(PREF_PRIVATE_MOD,
+							recipientPrivateModBase64Str);
+					prefsEditor.putString(PREF_PRIVATE_EXP,
+							recipientPrivateExpBase64Str);
+					// prefsEditor.putString(PREF_PRIVATE_MOD,
+					// DEFAULT_PRIVATE_MOD);
+					prefsEditor.commit();
+				} catch (NoSuchMethodError e) {
+					Log.e(TAG, "Base64.encode() method not available", e);
+				}
+
+			} catch (NoSuchAlgorithmException e) {
+				Log.e(TAG, "RSA algorithm not available", e);
+			} catch (InvalidKeySpecException e) {
+				Log.e(TAG, "", e);
+			}
+		} else {
+			byte[] recipientPubModBA = Base64.decode(pubModRecipient,
+					Base64.DEFAULT);
+			byte[] recipientPubExpBA = Base64.decode(pubExpRecipient,
+					Base64.DEFAULT);
+			byte[] recipientPrivateModBA = Base64.decode(privateModRecipient,
+					Base64.DEFAULT);
+			byte[] recipientPrivateExpBA = Base64.decode(privateExpRecipient,
+					Base64.DEFAULT);
+
+			BigInteger recipientPubMod = new BigInteger(recipientPubModBA);
+			BigInteger recipientPubExp = new BigInteger(recipientPubExpBA);
+			BigInteger recipientPrivateMod = new BigInteger(
+					recipientPrivateModBA);
+			BigInteger recipientPrivateExp = new BigInteger(
+					recipientPrivateExpBA);
+
+			Log.i(TAG,
+					"TESTING - INTENDED RECIPIENT - the current user's stored public key modulus is "
+							+ recipientPubMod
+							+ " while the exponent is "
+							+ recipientPubExp
+							+ " === private key modulus is "
+							+ recipientPrivateMod
+							+ " and exponent is "
+							+ recipientPrivateExp);
+		}
 	}
 
 	public void handlePublicKey(RSAPublicKeySpec publicKey) {
@@ -436,23 +615,23 @@ public class MainActivity extends Activity {
 
 		SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
 				Context.MODE_PRIVATE);
-		
 
 		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
 		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-		String recipient = prefs.getString(PREF_RECIPIENT_NUM, DEFAULT_PREF);
-		if (!pubMod.equals(DEFAULT_PREF)&&!pubExp.equals(DEFAULT_PREF)) {
+		String recipient = prefs.getString(PREF_RECIPIENT_NUM,
+				DEFAULT_RECIPIENT_NUM);
+		if (!pubMod.equals(DEFAULT_PREF) && !pubExp.equals(DEFAULT_PREF)) {
 			byte[] curPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
 			byte[] curPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			BigInteger curPubMod = new BigInteger(curPubModBA);
 			BigInteger curPubExp = new BigInteger(curPubExpBA);
 
-			RSAPublicKeySpec keySpec = new RSAPublicKeySpec(curPubMod,
-					curPubExp);
+			RSAPublicKeySpec recipientPublicKeySpec = new RSAPublicKeySpec(
+					curPubMod, curPubExp);
 			try {
 				KeyFactory fact = KeyFactory.getInstance("RSA");
 
-				PublicKey pubKey = fact.generatePublic(keySpec);
+				PublicKey pubKey = fact.generatePublic(recipientPublicKeySpec);
 
 				// TODO encrypt the message and send it
 				Cipher cipher = Cipher.getInstance("RSA");
@@ -460,13 +639,19 @@ public class MainActivity extends Activity {
 				byte[] msgByteArray = msg.getBytes();
 				byte[] cipherData = cipher.doFinal(msgByteArray);
 
-				String encryptedMsg = new String(cipherData);
-				Log.i(TAG, "encrypted message is : '" + encryptedMsg
-						+ "' with length " + encryptedMsg.length() + " being sent to "+recipient);
-				if (encryptedMsg.length() > 160) {
-					sendLongSMS(recipient, encryptedMsg);
+				String encodedCipherData = Base64.encodeToString(cipherData,
+						Base64.DEFAULT);
+
+				// String encryptedMsg = new String(cipherData);
+				Log.i(TAG, "encrypted message is : '" + new String(cipherData)
+						+ "' and it became " + encodedCipherData
+						+ " after Base64 encoding with length "
+						+ encodedCipherData.length() + " being sent to "
+						+ recipient);
+				if (encodedCipherData.length() > 160) {
+					sendLongSMS(recipient, encodedCipherData);
 				} else {
-					sendSMS(recipient, encryptedMsg);
+					sendSMS(recipient, encodedCipherData);
 				}
 
 			} catch (NoSuchAlgorithmException e) {

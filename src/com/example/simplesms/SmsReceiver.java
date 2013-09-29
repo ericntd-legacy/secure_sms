@@ -37,13 +37,15 @@ public class SmsReceiver extends BroadcastReceiver {
 	private final String PREF_PUBLIC_EXP = "PublicExponent";
 	private final String PREF_PRIVATE_MOD = "PrivateModulus";
 	private final String PREF_PRIVATE_EXP = "PrivateExponent";
-	
+
 	private final String PREF_PHONE_NUMBER = "PhoneNumber";
 	private final String PREF_RECIPIENT_NUM = "PhoneNumber";
 
 	private final String DEFAULT_PREF = "";
 
+	// sms codes
 	private final String KEY_EXCHANGE_CODE = "keyx";
+	private final String HEALTH_SMS = "gmstelehealth";
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -66,10 +68,12 @@ public class SmsReceiver extends BroadcastReceiver {
 		if (message.startsWith(KEY_EXCHANGE_CODE)) {
 			Log.i(TAG, "message received is a key exchange message");
 			handleKeyExchangeMsg(message, sender, context);
-		} else {
+		} else if (message.startsWith(HEALTH_SMS)) {
 			Log.i(TAG, "received a secure text message");
 			// TODO handle secure text message
 			handleEncryptedMsg(message, sender, context);
+		} else {
+			Log.i(TAG, "Message not recognised, not doing anything");
 		}
 	}
 
@@ -88,12 +92,13 @@ public class SmsReceiver extends BroadcastReceiver {
 		if (parts.length == 3) {
 			String recipientPubModBase64Str = parts[1];
 			String recipientPubExpBase64Str = parts[2];
-			
+
 			/*
-			 * ================================
-			 * for testing only - to be removed later
+			 * ================================ for testing only - to be removed
+			 * later
 			 */
-			verifyRecipientsPublicKey(recipientPubModBase64Str, recipientPubExpBase64Str, context);
+			verifyRecipientsPublicKey(recipientPubModBase64Str,
+					recipientPubExpBase64Str, context);
 			/*
 			 * ================================
 			 */
@@ -127,23 +132,36 @@ public class SmsReceiver extends BroadcastReceiver {
 
 	private void handleEncryptedMsg(String message, String sender,
 			Context context) {
-		// TODO get the private key of the intended recipient
-		SharedPreferences prefs = context.getSharedPreferences(PREFS_RECIPIENT,
-				Context.MODE_PRIVATE);
+		String[] parts = message.split(" ");
+		if (parts.length == 2) {
 
-		String privateMod = prefs.getString(PREF_PRIVATE_MOD, DEFAULT_PREF);
-		String priavteExp = prefs.getString(PREF_PRIVATE_EXP, DEFAULT_PREF);
-		//String recipient = prefs.getString(PREF_RECIPIENT_NUM, DEFAULT_PREF);
-		if (!privateMod.equals(DEFAULT_PREF) && !priavteExp.equals(DEFAULT_PREF)) {
-			byte[] recipientPrivateModBA = Base64.decode(privateMod, Base64.DEFAULT);
-			byte[] recipientPrivateExpBA = Base64.decode(priavteExp, Base64.DEFAULT);
-			BigInteger recipientPrivateMod = new BigInteger(recipientPrivateModBA);
-			BigInteger recipientPrivateExp = new BigInteger(recipientPrivateExpBA);
-			RSAPrivateKeySpec recipientPrivateKeySpec = new RSAPrivateKeySpec(
-					recipientPrivateMod, recipientPrivateExp);
+			// TODO get the private key of the intended recipient
+			SharedPreferences prefs = context.getSharedPreferences(
+					PREFS_RECIPIENT, Context.MODE_PRIVATE);
 
-			// TODO decrypt the encrypted message
-			decryptMsg(message, recipientPrivateKeySpec);
+			String privateMod = prefs.getString(PREF_PRIVATE_MOD, DEFAULT_PREF);
+			String priavteExp = prefs.getString(PREF_PRIVATE_EXP, DEFAULT_PREF);
+			// String recipient = prefs.getString(PREF_RECIPIENT_NUM,
+			// DEFAULT_PREF);
+			if (!privateMod.equals(DEFAULT_PREF)
+					&& !priavteExp.equals(DEFAULT_PREF)) {
+				byte[] recipientPrivateModBA = Base64.decode(privateMod,
+						Base64.DEFAULT);
+				byte[] recipientPrivateExpBA = Base64.decode(priavteExp,
+						Base64.DEFAULT);
+				BigInteger recipientPrivateMod = new BigInteger(
+						recipientPrivateModBA);
+				BigInteger recipientPrivateExp = new BigInteger(
+						recipientPrivateExpBA);
+				RSAPrivateKeySpec recipientPrivateKeySpec = new RSAPrivateKeySpec(
+						recipientPrivateMod, recipientPrivateExp);
+
+				// TODO decrypt the encrypted message
+				decryptMsg(message, recipientPrivateKeySpec);
+			}
+		} else {
+			Log.e(TAG,
+					"message has incorrect format, it's suppose to be 'gmstelehealth [measurements]'");
 		}
 	}
 
@@ -154,19 +172,23 @@ public class SmsReceiver extends BroadcastReceiver {
 			PrivateKey privKey = fact.generatePrivate(privateKey);
 
 			// TODO encrypt the message and send it
-			// first decode the Base64 encoded string to get the encrypted message
+			// first decode the Base64 encoded string to get the encrypted
+			// message
 			byte[] encryptedMsg = Base64.decode(msg, Base64.DEFAULT);
-			Log.i(TAG, "We got a message: "+msg+" and after decode we got the encrypted message : "+new String(encryptedMsg));
-			
+			Log.i(TAG, "We got a message: " + msg
+					+ " and after decode we got the encrypted message : "
+					+ new String(encryptedMsg));
+
 			Cipher cipher = Cipher.getInstance("RSA");
 			cipher.init(Cipher.DECRYPT_MODE, privKey);
-			//byte[] msgByteArray = msg.getBytes();
-		
+			// byte[] msgByteArray = msg.getBytes();
+
 			byte[] cipherData = cipher.doFinal(encryptedMsg);
-			
+
 			String decryptedMsg = new String(cipherData);
-			Log.i(TAG, "After decryption, we got the original message '"+decryptedMsg+"'");
-			
+			Log.i(TAG, "After decryption, we got the original message '"
+					+ decryptedMsg + "'");
+
 		} catch (NoSuchAlgorithmException e) {
 			Log.e(TAG, "RSA algorithm not available", e);
 		} catch (InvalidKeySpecException e) {
@@ -227,15 +249,21 @@ public class SmsReceiver extends BroadcastReceiver {
 
 		return msg;
 	}
-	
-	private void verifyRecipientsPublicKey(String mod, String exp, Context context) {
-		SharedPreferences prefs = context.getSharedPreferences(
-				PREFS_RECIPIENT, Context.MODE_PRIVATE);
-		
-		String storedRecipientsPublicMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String storedRecipientsPublicExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-		
-		boolean result = (mod.equals(storedRecipientsPublicMod)&&exp.equals(storedRecipientsPublicExp));
-		Log.w(TAG, "the recipient's public key received is the same as it was generated "+result);
+
+	private void verifyRecipientsPublicKey(String mod, String exp,
+			Context context) {
+		SharedPreferences prefs = context.getSharedPreferences(PREFS_RECIPIENT,
+				Context.MODE_PRIVATE);
+
+		String storedRecipientsPublicMod = prefs.getString(PREF_PUBLIC_MOD,
+				DEFAULT_PREF);
+		String storedRecipientsPublicExp = prefs.getString(PREF_PUBLIC_EXP,
+				DEFAULT_PREF);
+
+		boolean result = (mod.equals(storedRecipientsPublicMod) && exp
+				.equals(storedRecipientsPublicExp));
+		Log.w(TAG,
+				"the recipient's public key received is the same as it was generated "
+						+ result);
 	}
 }

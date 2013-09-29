@@ -34,12 +34,15 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.telephony.SmsManager;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 //import org.apache.commons.codec.binary.Base64;
@@ -50,6 +53,7 @@ public class MainActivity extends Activity {
 	private final String TAG = "MainActivity";
 	private final boolean D = true;
 	private final boolean RESET = false;
+	private TextView debugMessages;
 
 	// sharedpreferences
 	private final String PREFS = "MyKeys";
@@ -81,6 +85,9 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 
 		Log.i(TAG, "onCreate");
+		
+		debugMessages = (TextView) findViewById(R.id.DebugMessages);
+		debugMessages.setMovementMethod(new ScrollingMovementMethod());
 
 		// for testing only, clearing the SharedPreferences
 		if (RESET) {
@@ -116,7 +123,7 @@ public class MainActivity extends Activity {
 		/*
 		 * Handle the intended recipient's keys for testing
 		 */
-		handleRecipientsKeys();
+		//handleRecipientsKeys();
 
 		// TODO to bind the activity to SendReceiveService
 		// doBindService();
@@ -148,7 +155,7 @@ public class MainActivity extends Activity {
 		registerReceivers();
 
 		String message = "gmstelehealth @systolic=100@ @diastolic=70@ @hr=70@";
-		sendEncryptedMessage(message);
+		//sendEncryptedMessage(message);
 
 	}
 
@@ -180,7 +187,7 @@ public class MainActivity extends Activity {
 	@Override
 	public void onDestroy() {
 		Log.i(TAG, "onDestroy");
-		doUnbindService();
+		//doUnbindService();
 		super.onDestroy();
 	}
 
@@ -247,7 +254,7 @@ public class MainActivity extends Activity {
 
 	private boolean mIsBound = false;
 
-	void doBindService() {
+	private void doBindService() {
 		Log.i(TAG, "binding the activity to SendReceiveService");
 		// Establish a connection with the service. We use an explicit
 		// class name because we want a specific service implementation that
@@ -259,7 +266,7 @@ public class MainActivity extends Activity {
 		mIsBound = true;
 	}
 
-	void doUnbindService() {
+	private void doUnbindService() {
 		Log.i(TAG, "unbinding the activity from SendReceiveService");
 		if (mIsBound) {
 			// Detach our existing connection.
@@ -382,7 +389,8 @@ public class MainActivity extends Activity {
 					+ myPubModBI + " while the exponent is " + myPubExpBI
 					+ " === private key modulus is " + myPrivateModBI
 					+ " and exponent is " + myPrivateExpBI);
-
+			TextView debug = (TextView) findViewById(R.id.DebugMessages);
+			debug.append("Keys exist, not generating");
 		}
 
 	}
@@ -583,7 +591,7 @@ public class MainActivity extends Activity {
 
 			savePublicKey(pubModBase64Str, pubExpBase64Str);
 
-			sendKeyExchangeSMS(pubModBase64Str, pubExpBase64Str);
+			//sendKeyExchangeSMS(pubModBase64Str, pubExpBase64Str);
 		} catch (NoSuchMethodError e) {
 			Log.e(TAG, "Base64.encode() method not available", e);
 		}
@@ -629,11 +637,11 @@ public class MainActivity extends Activity {
 		// TODO extract the modulus and exponent and save them
 	}
 
-	public void sendKeyExchangeSMS(String mod, String exp) {
+	public void sendKeyExchangeSMS(String recipient, String mod, String exp) {
 		String msg = "keyx " + mod + " " + exp;
-		Log.i(TAG, "the message after encoded to base64 is: '" + msg
-				+ "' and its length is " + msg.length());
-
+		Log.i(TAG, "Sending key exchange sms: '"+msg+"'");
+		TextView debug = (TextView) findViewById(R.id.DebugMessages);
+		debug.append("Sending key exchange sms: '"+msg+"'");
 		if (msg.length() > 160) {
 			sendLongSMS(recipient, msg);
 		} else {
@@ -643,8 +651,14 @@ public class MainActivity extends Activity {
 
 	private void sendKeyExchangeSMS() {
 		// TODO to retrieve the modulus and exponent of the curent user's public key
+		SharedPreferences prefs = getSharedPreferences(PREFS,
+				Context.MODE_PRIVATE);
 		
-		sendKeyExchangeSMS("", "");
+		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
+		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		
+		EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
+		sendKeyExchangeSMS(recipient.getText().toString(), pubMod, pubExp);
 	}
 
 	public void savePrivateKey(RSAPrivateKeySpec privateKey) {
@@ -764,7 +778,8 @@ public class MainActivity extends Activity {
 					Toast.makeText(getBaseContext(), "SMS sent",
 							Toast.LENGTH_SHORT).show();
 					Log.i(TAG, "SMS sent");
-
+					TextView debug = (TextView) findViewById(R.id.DebugMessages);
+					debug.append("SMS sent");
 					break;
 				case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
 					Toast.makeText(getBaseContext(), "Generic failure",
@@ -799,6 +814,8 @@ public class MainActivity extends Activity {
 					Toast.makeText(getBaseContext(), "SMS delivered",
 							Toast.LENGTH_SHORT).show();
 					Log.i(TAG, "SMS delivered");
+					TextView debug = (TextView) findViewById(R.id.DebugMessages);
+					debug.append("SMS sent");
 					break;
 				case Activity.RESULT_CANCELED:
 					Toast.makeText(getBaseContext(), "SMS not delivered",
@@ -818,6 +835,12 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				// TODO generate private and public keys and store them
 				handleKeys();
+				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
+				EditText message = (EditText) findViewById(R.id.InputSMS);
+				InputMethodManager imm = (InputMethodManager)getSystemService(
+					      Context.INPUT_METHOD_SERVICE);
+					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
+					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
 			}
 		});
 
@@ -826,7 +849,14 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO share the public key with the intended recipient
+				
 				sendKeyExchangeSMS();
+				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
+				EditText message = (EditText) findViewById(R.id.InputSMS);
+				InputMethodManager imm = (InputMethodManager)getSystemService(
+					      Context.INPUT_METHOD_SERVICE);
+					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
+					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
 			}
 		});
 
@@ -836,11 +866,14 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				// TODO encrypt the SMS message using the public key of the
 				// intended recipient and send it
-				SharedPreferences prefs = getSharedPreferences(PREFS,
-						Context.MODE_PRIVATE);
-				String recipient = prefs.getString(PREF_RECIPIENT_NUM,
-						DEFAULT_RECIPIENT_NUM);
-				sendSecureSMS(recipient, getApplicationContext());
+				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
+				EditText message = (EditText) findViewById(R.id.InputSMS);
+				sendSecureSMS(recipient.getText().toString(), getApplicationContext());
+				
+				InputMethodManager imm = (InputMethodManager)getSystemService(
+					      Context.INPUT_METHOD_SERVICE);
+					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
+					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
 			}
 		});
 	}
@@ -857,14 +890,15 @@ public class MainActivity extends Activity {
 		// TODO encode the main content of the message and compose the SMS
 		// message
 		String smsMsg = HEALTH_SMS + " " + encryptedMsg;
-
+		TextView debug = (TextView) findViewById(R.id.DebugMessages);
+		debug.append("Sending secure sms: '"+smsMsg+"'");
 		// TODO send the SMS message
 		if (smsMsg.length() > 160) {
 			Log.i(TAG, "sms is " + smsMsg + " and recipient is " + recipient);
-			// sendLongSMS(recipient, smsMsg);
+			sendLongSMS(recipient, smsMsg);
 		} else {
 			Log.i(TAG, "sms is " + smsMsg + " and recipient is " + recipient);
-			// sendSMS(recipient, smsMsg);
+			sendSMS(recipient, smsMsg);
 		}
 	}
 

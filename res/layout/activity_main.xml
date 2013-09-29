@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginLeft="21dp"
+        android:layout_marginLeft="10dp"
         android:layout_marginTop="18dp"
         android:text="@string/btn_generate_keys" />
 
@@ -30,15 +30,14 @@
 
     <EditText
         android:id="@+id/InputRecipientNum"
-        android:layout_width="wrap_content"
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:layout_alignBottom="@+id/BtnShareKey"
-        android:layout_marginLeft="54dp"
+        android:layout_marginLeft="5dp"
         android:layout_toRightOf="@+id/BtnShareKey"
         android:ems="10"
         android:inputType="phone" >
 
-        <requestFocus />
     </EditText>
 
     <MultiAutoCompleteTextView
@@ -47,9 +46,9 @@
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/BtnShareKey"
         android:layout_below="@+id/BtnShareKey"
-        android:layout_marginTop="29dp"
+        android:layout_marginTop="30dp"
         android:ems="10"
-        android:text="@string/input_text_message" />
+        android:hint="@string/input_text_message" />
 
     <Button
         android:id="@+id/BtnSendSMS"
@@ -57,16 +56,20 @@
         android:layout_height="wrap_content"
         android:layout_alignLeft="@+id/InputSMS"
         android:layout_below="@+id/InputSMS"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="30dp"
         android:text="@string/btn_send_sms" />
 
-    <TextView
-        android:id="@+id/DebugMessages"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/BtnSendSMS"
-        android:layout_below="@+id/BtnSendSMS"
-        android:layout_marginTop="38dp"
-        android:text="@string/debug_messages" />
+        <TextView
+            android:id="@+id/DebugMessages"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+           	android:layout_alignLeft="@+id/BtnSendSMS"
+        	android:layout_below="@+id/BtnSendSMS"
+        	
+            android:layout_marginTop="30dp"
+            android:maxLines="9"
+            android:scrollbars="vertical"
+            android:text="@string/debug_messages" />
+
 
 </RelativeLayout>

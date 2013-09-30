@@ -32,14 +32,14 @@ public class SmsReceiver extends BroadcastReceiver {
 	private final String TAG = "SmsReceiver";
 
 	// SharedPreferences
-	private final String PREFS_RECIPIENT = "RecipientsKeys";
+	private final String PREFS = "MyKeys";
 	private final String PREF_PUBLIC_MOD = "PublicModulus";
 	private final String PREF_PUBLIC_EXP = "PublicExponent";
 	private final String PREF_PRIVATE_MOD = "PrivateModulus";
 	private final String PREF_PRIVATE_EXP = "PrivateExponent";
 
-	private final String PREF_PHONE_NUMBER = "PhoneNumber";
-	private final String PREF_RECIPIENT_NUM = "PhoneNumber";
+	// private final String PREF_PHONE_NUMBER = "PhoneNumber";
+	// private final String PREF_RECIPIENT_NUM = "PhoneNumber";
 
 	private final String DEFAULT_PREF = "";
 
@@ -87,7 +87,7 @@ public class SmsReceiver extends BroadcastReceiver {
 			Context context) {
 		// TODO get the modulus and exponent of the public key of the sender &
 		// reconstruct the public key
-		String recipient = sender;
+		String contactNum = sender;
 		String[] parts = message.split(" ");
 		if (parts.length == 3) {
 			String recipientPubModBase64Str = parts[1];
@@ -97,8 +97,8 @@ public class SmsReceiver extends BroadcastReceiver {
 			 * ================================ for testing only - to be removed
 			 * later
 			 */
-			verifyRecipientsPublicKey(recipientPubModBase64Str,
-					recipientPubExpBase64Str, context);
+			// verifyRecipientsPublicKey(recipientPubModBase64Str,recipientPubExpBase64Str,
+			// context);
 			/*
 			 * ================================
 			 */
@@ -115,14 +115,21 @@ public class SmsReceiver extends BroadcastReceiver {
 
 			// TODO store the intended recipient's public key in the app's
 			// SharedPreferences
-			SharedPreferences prefs = context.getSharedPreferences(
-					PREFS_RECIPIENT, Context.MODE_PRIVATE);
+			SharedPreferences prefs = context.getSharedPreferences(contactNum,
+					Context.MODE_PRIVATE);
 			SharedPreferences.Editor prefsEditor = prefs.edit();
 
 			prefsEditor.putString(PREF_PUBLIC_MOD, recipientPubModBase64Str);
 			prefsEditor.putString(PREF_PUBLIC_EXP, recipientPubExpBase64Str);
-			prefsEditor.putString(PREF_PHONE_NUMBER, recipient);
+			// prefsEditor.putString(PREF_PHONE_NUMBER, recipient);
 			prefsEditor.commit();
+
+			Log.i(TAG,
+					"successfully remembered the contact " + contactNum
+							+ " and its public key module "
+							+ prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF)
+							+ " and exponent "
+							+ prefs.getString(PREF_PUBLIC_EXP, PREF_PUBLIC_EXP));
 		} else {
 			Log.e(TAG,
 					"something is wrong with the key exchange message, it's supposed to have 3 parts: the code 'keyx', the modulus and the exponent");
@@ -132,12 +139,13 @@ public class SmsReceiver extends BroadcastReceiver {
 
 	private void handleEncryptedMsg(String message, String sender,
 			Context context) {
+		String contactNum = sender;
 		String[] parts = message.split(" ");
 		if (parts.length == 2) {
 
 			// TODO get the private key of the intended recipient
 			SharedPreferences prefs = context.getSharedPreferences(
-					PREFS_RECIPIENT, Context.MODE_PRIVATE);
+					PREFS, Context.MODE_PRIVATE);
 
 			String privateMod = prefs.getString(PREF_PRIVATE_MOD, DEFAULT_PREF);
 			String priavteExp = prefs.getString(PREF_PRIVATE_EXP, DEFAULT_PREF);
@@ -157,7 +165,9 @@ public class SmsReceiver extends BroadcastReceiver {
 						recipientPrivateMod, recipientPrivateExp);
 
 				// TODO decrypt the encrypted message
-				decryptMsg(message, recipientPrivateKeySpec);
+				decryptMsg(parts[1], recipientPrivateKeySpec);
+			} else {
+				Log.e(TAG, "private key could not be retrieved");
 			}
 		} else {
 			Log.e(TAG,
@@ -250,7 +260,7 @@ public class SmsReceiver extends BroadcastReceiver {
 		return msg;
 	}
 
-	private void verifyRecipientsPublicKey(String mod, String exp,
+	/*private void verifyRecipientsPublicKey(String mod, String exp,
 			Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_RECIPIENT,
 				Context.MODE_PRIVATE);
@@ -265,5 +275,5 @@ public class SmsReceiver extends BroadcastReceiver {
 		Log.w(TAG,
 				"the recipient's public key received is the same as it was generated "
 						+ result);
-	}
+	}*/
 }

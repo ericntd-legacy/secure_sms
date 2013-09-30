@@ -12,6 +12,7 @@
 	
     <!-- Inputs -->
     <string name="input_text_message">Your text message here&#8230;</string>
+    <string name="input_recipient_num">+6593628809</string>
     
     <!-- Debugging -->
     <string name="debug_messages">Debug messages&#8230;</string>

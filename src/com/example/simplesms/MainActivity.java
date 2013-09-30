@@ -25,14 +25,18 @@ import javax.crypto.NoSuchPaddingException;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.support.v4.app.DialogFragment;
 import android.telephony.SmsManager;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
@@ -57,7 +61,7 @@ public class MainActivity extends Activity {
 
 	// sharedpreferences
 	private final String PREFS = "MyKeys";
-	private final String PREFS_RECIPIENT = "RecipientsKeys";
+	//private final String PREFS_RECIPIENT = "RecipientsKeys";
 
 	private final String PREF_PUBLIC_MOD = "PublicModulus";
 	private final String PREF_PUBLIC_EXP = "PublicExponent";
@@ -65,15 +69,17 @@ public class MainActivity extends Activity {
 	private final String PREF_PRIVATE_EXP = "PrivateExponent";
 
 	private final String DEFAULT_PREF = "";
-	private final String DEFAULT_RECIPIENT_NUM = "93628809";
+	//private final String DEFAULT_RECIPIENT_NUM = "93628809";
 
-	private final String PREF_RECIPIENT_NUM = "RecipientNum";
+	//private final String PREF_RECIPIENT_NUM = "RecipientNum";
 
 	// intents
 	private final String INTENT_SOURCE = "Source";
 
 	// others
-	private final String DES_NUM = "93628809";
+	//private final String DES_NUM = "93628809";
+
+	final Context context = this;
 
 	// SMS codes
 	private final String KEYX = "keyx";
@@ -85,20 +91,20 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 
 		Log.i(TAG, "onCreate");
-		
+
 		debugMessages = (TextView) findViewById(R.id.DebugMessages);
 		debugMessages.setMovementMethod(new ScrollingMovementMethod());
 
 		// for testing only, clearing the SharedPreferences
 		if (RESET) {
-			Log.w(TAG,
+			/*Log.w(TAG,
 					"TESTING - INTENDED RECIPIENT - Resetting the intended recipient's keys");
 			SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
 					Context.MODE_PRIVATE);
 			SharedPreferences.Editor prefsEditor = prefs.edit();
 
 			prefsEditor.clear();
-			prefsEditor.commit();
+			prefsEditor.commit();*/
 		}
 
 		// TODO process the intent if any
@@ -123,7 +129,7 @@ public class MainActivity extends Activity {
 		/*
 		 * Handle the intended recipient's keys for testing
 		 */
-		//handleRecipientsKeys();
+		// handleRecipientsKeys();
 
 		// TODO to bind the activity to SendReceiveService
 		// doBindService();
@@ -155,7 +161,7 @@ public class MainActivity extends Activity {
 		registerReceivers();
 
 		String message = "gmstelehealth @systolic=100@ @diastolic=70@ @hr=70@";
-		//sendEncryptedMessage(message);
+		// sendEncryptedMessage(message);
 
 	}
 
@@ -187,7 +193,7 @@ public class MainActivity extends Activity {
 	@Override
 	public void onDestroy() {
 		Log.i(TAG, "onDestroy");
-		//doUnbindService();
+		// doUnbindService();
 		super.onDestroy();
 	}
 
@@ -205,7 +211,7 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	public void saveToPref(String pref, BigInteger num) {
+	/*public void saveToPref(String pref, BigInteger num) {
 		String st = new String(num.toByteArray());
 
 		// Log.i(TAG, "modulus/ exponent length in bytes is " + st.length());
@@ -219,7 +225,7 @@ public class MainActivity extends Activity {
 
 		// Log.i(TAG, prefs.getString(pref, DEFAULT_PREF) +
 		// " was successfully stored as "+pref );
-	}
+	}*/
 
 	private SendReceiveService mBoundService;
 
@@ -308,7 +314,13 @@ public class MainActivity extends Activity {
 				new Intent(DELIVERED), 0);
 
 		SmsManager sms = SmsManager.getDefault();
-		sms.sendTextMessage(phoneNum, null, message, sentPI, deliveredPI);
+		try {
+			sms.sendTextMessage(phoneNum, null, message, sentPI, deliveredPI);
+		} catch (IllegalArgumentException e) {
+			Log.e(TAG,
+					"some information is not correct e.g. recipient's phone number",
+					e);
+		}
 	}
 
 	/*
@@ -374,6 +386,7 @@ public class MainActivity extends Activity {
 			 * "Having trouble saving key file", e); }
 			 */
 		} else {
+			alert("Keys exist, not generating");
 			byte[] myPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
 			byte[] myPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			byte[] myPrivateModBA = Base64.decode(privateMod, Base64.DEFAULT);
@@ -394,185 +407,9 @@ public class MainActivity extends Activity {
 		}
 
 	}
+	
 
-	/*
-	 * 
-	 */
-
-	public void handleRecipientsKeys() {
-		SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
-				Context.MODE_PRIVATE);
-		String pubModRecipient = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String pubExpRecipient = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-		String privateModRecipient = prefs.getString(PREF_PRIVATE_MOD,
-				DEFAULT_PREF);
-		String privateExpRecipient = prefs.getString(PREF_PRIVATE_EXP,
-				DEFAULT_PREF);
-
-		boolean recipientsKeysExist = false;
-
-		if (!pubModRecipient.equals(DEFAULT_PREF)
-				&& !pubExpRecipient.equals(DEFAULT_PREF)
-				&& !privateModRecipient.equals(DEFAULT_PREF)
-				&& !privateExpRecipient.equals(DEFAULT_PREF)) {
-			Log.i(TAG,
-					"TESTING - INTENDED RECIPIENT - The intented recipient's keys found, not regenerating");
-			recipientsKeysExist = true;
-		} else {
-
-			recipientsKeysExist = false;
-		}
-		if (!recipientsKeysExist) {
-			Log.i(TAG,
-					"TESTING - INTENDED RECIPIENT - The intented recipient's keys not found, generating now");
-			try {
-
-				/*
-				 * Generating private and public key using RSA algorithm saving
-				 * the keys to the app's shared preferences
-				 */
-				KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-				kpg.initialize(2048);
-				KeyPair kp = kpg.genKeyPair();
-				Key publicKey = kp.getPublic();
-				Key privateKey = kp.getPrivate();
-
-				KeyFactory fact = KeyFactory.getInstance("RSA");
-				RSAPublicKeySpec pub = fact.getKeySpec(publicKey,
-						RSAPublicKeySpec.class);
-				RSAPrivateKeySpec priv = fact.getKeySpec(privateKey,
-						RSAPrivateKeySpec.class);
-
-				/*
-				 * save the public key to the app's SharedPreferences and send
-				 * it via SMS to the intended recipient
-				 */
-				// handlePublicKey(pub);
-				BigInteger pubModBI = pub.getModulus();
-				BigInteger pubExpBI = pub.getPublicExponent();
-				Log.i(TAG,
-						"TESTING - INTENDED RECIPIENT - the modulus of the current user's public key is "
-								+ pubModBI + " and the exponent is " + pubExpBI);
-				byte[] pubModBA = pubModBI.toByteArray();// Base64.encodeInteger(pubModBI);
-															// // for some
-															// strange
-															// reason this
-															// throws
-															// NoSuchMethodError
-				byte[] pubExpBA = pubExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
-
-				try {
-					String pubModRecipientBase64Str = Base64.encodeToString(
-							pubModBA, Base64.DEFAULT);
-					String pubExpRecipientBase64Str = Base64.encodeToString(
-							pubExpBA, Base64.DEFAULT);
-
-					// SharedPreferences prefs =
-					// getSharedPreferences(PREFS_RECIPIENT,Context.MODE_PRIVATE);
-					SharedPreferences.Editor prefsEditor = prefs.edit();
-
-					prefsEditor.putString(PREF_PUBLIC_MOD,
-							pubModRecipientBase64Str);
-					prefsEditor.putString(PREF_PUBLIC_EXP,
-							pubExpRecipientBase64Str);
-					// prefsEditor.putString(PREF_PRIVATE_MOD,
-					// DEFAULT_PRIVATE_MOD);
-					prefsEditor.commit();
-
-					String msg = "keyx " + pubModRecipientBase64Str + " "
-							+ pubExpRecipientBase64Str;
-					Log.i(TAG,
-							"TESTING - INTENDED RECIPIENT - the message after encoded to base64 is: '"
-									+ msg + "' and its length is "
-									+ msg.length());
-					Log.i(TAG,
-							"TESTING - INTENDED RECIPIENT - Sending key exchange message to the intended recipient");
-					if (msg.length() > 160) {
-						sendLongSMS(DEFAULT_RECIPIENT_NUM, msg);
-					} else {
-						sendSMS(DEFAULT_RECIPIENT_NUM, msg);
-					}
-				} catch (NoSuchMethodError e) {
-					Log.e(TAG, "Base64.encode() method not available", e);
-				}
-
-				/*
-				 * save the private key to the app's SharedPreferences
-				 */
-				// savePrivateKey(priv);
-				BigInteger privateModBI = priv.getModulus();
-				BigInteger privateExpBI = priv.getPrivateExponent();
-				Log.i(TAG,
-						"TESTING - INTENDED RECIPIENT - the modulus of the current user's private key is "
-								+ privateModBI
-								+ " and the exponent is "
-								+ privateExpBI);
-				byte[] privateModBA = privateModBI.toByteArray();// Base64.encodeInteger(pubModBI);
-																	// // for
-																	// some
-																	// strange
-																	// reason
-																	// this
-																	// throws
-																	// NoSuchMethodError
-				byte[] privateExpBA = privateExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
-
-				try {
-					String recipientPrivateModBase64Str = Base64
-							.encodeToString(privateModBA, Base64.DEFAULT);
-					String recipientPrivateExpBase64Str = Base64
-							.encodeToString(privateExpBA, Base64.DEFAULT);
-
-					// SharedPreferences prefs =
-					// getSharedPreferences(PREFS,Context.MODE_PRIVATE);
-					SharedPreferences.Editor prefsEditor = prefs.edit();
-
-					prefsEditor.putString(PREF_PRIVATE_MOD,
-							recipientPrivateModBase64Str);
-					prefsEditor.putString(PREF_PRIVATE_EXP,
-							recipientPrivateExpBase64Str);
-					// prefsEditor.putString(PREF_PRIVATE_MOD,
-					// DEFAULT_PRIVATE_MOD);
-					prefsEditor.commit();
-				} catch (NoSuchMethodError e) {
-					Log.e(TAG, "Base64.encode() method not available", e);
-				}
-
-			} catch (NoSuchAlgorithmException e) {
-				Log.e(TAG, "RSA algorithm not available", e);
-			} catch (InvalidKeySpecException e) {
-				Log.e(TAG, "", e);
-			}
-		} else {
-			byte[] recipientPubModBA = Base64.decode(pubModRecipient,
-					Base64.DEFAULT);
-			byte[] recipientPubExpBA = Base64.decode(pubExpRecipient,
-					Base64.DEFAULT);
-			byte[] recipientPrivateModBA = Base64.decode(privateModRecipient,
-					Base64.DEFAULT);
-			byte[] recipientPrivateExpBA = Base64.decode(privateExpRecipient,
-					Base64.DEFAULT);
-
-			BigInteger recipientPubMod = new BigInteger(recipientPubModBA);
-			BigInteger recipientPubExp = new BigInteger(recipientPubExpBA);
-			BigInteger recipientPrivateMod = new BigInteger(
-					recipientPrivateModBA);
-			BigInteger recipientPrivateExp = new BigInteger(
-					recipientPrivateExpBA);
-
-			Log.i(TAG,
-					"TESTING - INTENDED RECIPIENT - the current user's stored public key modulus is "
-							+ recipientPubMod
-							+ " while the exponent is "
-							+ recipientPubExp
-							+ " === private key modulus is "
-							+ recipientPrivateMod
-							+ " and exponent is "
-							+ recipientPrivateExp);
-		}
-	}
-
-	public void handlePublicKey(RSAPublicKeySpec publicKey) {
+	/*public void handlePublicKey(RSAPublicKeySpec publicKey) {
 		BigInteger pubModBI = publicKey.getModulus();
 		BigInteger pubExpBI = publicKey.getPublicExponent();
 		Log.i(TAG, "the modulus of the current user's public key is "
@@ -591,11 +428,11 @@ public class MainActivity extends Activity {
 
 			savePublicKey(pubModBase64Str, pubExpBase64Str);
 
-			//sendKeyExchangeSMS(pubModBase64Str, pubExpBase64Str);
+			// sendKeyExchangeSMS(pubModBase64Str, pubExpBase64Str);
 		} catch (NoSuchMethodError e) {
 			Log.e(TAG, "Base64.encode() method not available", e);
 		}
-	}
+	}*/
 
 	public void savePublicKey(String mod, String exp) {
 		SharedPreferences prefs = getSharedPreferences(PREFS,
@@ -638,33 +475,43 @@ public class MainActivity extends Activity {
 	}
 
 	public void sendKeyExchangeSMS(String recipient, String mod, String exp) {
-		String msg = "keyx " + mod + " " + exp;
-		Log.i(TAG, "Sending key exchange sms: '"+msg+"'");
-		TextView debug = (TextView) findViewById(R.id.DebugMessages);
-		debug.append("Sending key exchange sms: '"+msg+"'");
-		if (msg.length() > 160) {
-			sendLongSMS(recipient, msg);
+		if (mod.length() != 0 && exp.length() != 0) {
+			String msg = "keyx " + mod + " " + exp;
+			Log.i(TAG, "Sending key exchange sms: '" + msg + "'");
+			TextView debug = (TextView) findViewById(R.id.DebugMessages);
+			debug.append("Sending key exchange sms: '" + msg + "'");
+			if (msg.length() > 160) {
+				sendLongSMS(recipient, msg);
+			} else {
+				sendSMS(recipient, msg);
+			}
 		} else {
-			sendSMS(recipient, msg);
+			Log.w(TAG, "mod or exp can't be empty string");
 		}
 	}
 
 	private void sendKeyExchangeSMS() {
-		// TODO to retrieve the modulus and exponent of the curent user's public key
+		// TODO to retrieve the modulus and exponent of the curent user's public
+		// key
 		SharedPreferences prefs = getSharedPreferences(PREFS,
 				Context.MODE_PRIVATE);
-		
+
 		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
 		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-		
+
 		EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
-		sendKeyExchangeSMS(recipient.getText().toString(), pubMod, pubExp);
+		if (pubMod.length() != 0 && pubExp.length() != 0) {
+			sendKeyExchangeSMS(recipient.getText().toString(), pubMod, pubExp);
+		} else {
+			Log.w(TAG, "mod or exp can't be empty string");
+			alert("key not found, please generate first");
+		}
 	}
 
 	public void savePrivateKey(RSAPrivateKeySpec privateKey) {
 		BigInteger privateModBI = privateKey.getModulus();
 		BigInteger privateExpBI = privateKey.getPrivateExponent();
-		
+
 		byte[] privateModBA = privateModBI.toByteArray();// Base64.encodeInteger(pubModBI);
 															// // for some
 															// strange reason
@@ -681,7 +528,7 @@ public class MainActivity extends Activity {
 					+ privateModBI + " and the exponent is " + privateExpBI
 					+ " | encoded module is " + privateModBase64Str
 					+ " | encoded exponent is " + privateExpBase64Str);
-			
+
 			savePrivateKey(privateModBase64Str, privateExpBase64Str);
 
 		} catch (NoSuchMethodError e) {
@@ -700,7 +547,7 @@ public class MainActivity extends Activity {
 		prefsEditor.commit();
 	}
 
-	public void sendEncryptedMessage(String msg) {
+	/*public void sendEncryptedMessage(String msg) {
 		Log.i(TAG,
 				"original message is '" + msg + "' with length " + msg.length());
 		// reconstruct the public key of the intended recipient providing the
@@ -764,7 +611,7 @@ public class MainActivity extends Activity {
 			Log.i(TAG,
 					"can't send the message yet since the intended recipient's public key is not known");
 		}
-	}
+	}*/
 
 	private void registerReceivers() {
 		String SENT = "SMS_SENT";
@@ -837,10 +684,9 @@ public class MainActivity extends Activity {
 				handleKeys();
 				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
 				EditText message = (EditText) findViewById(R.id.InputSMS);
-				InputMethodManager imm = (InputMethodManager)getSystemService(
-					      Context.INPUT_METHOD_SERVICE);
-					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
-					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
+				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+				imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
+				imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
 			}
 		});
 
@@ -849,14 +695,32 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				// TODO share the public key with the intended recipient
-				
-				sendKeyExchangeSMS();
 				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
 				EditText message = (EditText) findViewById(R.id.InputSMS);
-				InputMethodManager imm = (InputMethodManager)getSystemService(
-					      Context.INPUT_METHOD_SERVICE);
+				String recipientNum = recipient.getText().toString();// TODO
+																		// must
+																		// process
+																		// the
+																		// number
+																		// to
+																		// take
+																		// care
+																		// of
+																		// country
+																		// code
+				if (recipientNum.length() == 0) {
+					// TODO prompt user to enter a phone number
+					Log.w(TAG, "phone number not entered");
+
+					alert("recient's phone number");
+
+				} else {
+					sendKeyExchangeSMS();
+
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
 					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
+				}
 			}
 		});
 
@@ -866,40 +730,105 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				// TODO encrypt the SMS message using the public key of the
 				// intended recipient and send it
-				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
 				EditText message = (EditText) findViewById(R.id.InputSMS);
-				sendSecureSMS(recipient.getText().toString(), getApplicationContext());
-				
-				InputMethodManager imm = (InputMethodManager)getSystemService(
-					      Context.INPUT_METHOD_SERVICE);
+				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
+				String recipientNum = recipient.getText().toString();// TODO
+																		// must
+																		// process
+																		// the
+																		// number
+																		// to
+																		// take
+																		// care
+																		// of
+																		// country
+																		// code
+				String messageStr = message.toString();
+				if (recipientNum.length() == 0) {
+					// TODO prompt user to enter a phone number
+					Log.w(TAG, "phone number not entered");
+
+					alert("recient's phone number");
+
+				} else if (messageStr.length() == 0) {
+					Log.w(TAG, "sms message not entered");
+
+					alert("sms message");
+				} else {
+
+					sendSecureSMS(recipient.getText().toString(),
+							getApplicationContext());
+
+					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
 					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
+				}
 			}
 		});
 	}
 
 	private void sendSecureSMS(String recipient, Context context) {
-		// TODO retrieve the private key
-		RSAPublicKeySpec pubKey = MyKeyUtils.getPublicKeySpec(context);
-		// TODO encrypt the main content of the message using the private key
+		// TODO check a public key for a recipient is stored
+		RSAPublicKeySpec recipientsPubKey = MyKeyUtils.getRecipientsPublicKey(
+				recipient, context);
+		if (recipientsPubKey != null) {
+
+		} else {
+			Log.e(TAG, "recipient's public key is not found");
+			alert("Public key not found for " + recipient);
+			return;
+		}
+
 		EditText smsMessage = (EditText) findViewById(R.id.InputSMS);
 		String msg = smsMessage.getText().toString();
-		String encryptedMsg = Base64.encodeToString(
-				MyKeyUtils.encryptMsg(msg, pubKey), Base64.DEFAULT);
 
-		// TODO encode the main content of the message and compose the SMS
-		// message
-		String smsMsg = HEALTH_SMS + " " + encryptedMsg;
-		TextView debug = (TextView) findViewById(R.id.DebugMessages);
-		debug.append("Sending secure sms: '"+smsMsg+"'");
-		// TODO send the SMS message
-		if (smsMsg.length() > 160) {
-			Log.i(TAG, "sms is " + smsMsg + " and recipient is " + recipient);
-			sendLongSMS(recipient, smsMsg);
+		if (msg != null && msg.length() != 0) {
+			String encryptedMsg = Base64.encodeToString(
+					MyKeyUtils.encryptMsg(msg, recipientsPubKey),
+					Base64.DEFAULT);
+
+			// TODO encode the main content of the message and compose the SMS
+			// message
+			String smsMsg = HEALTH_SMS + " " + encryptedMsg;
+			TextView debug = (TextView) findViewById(R.id.DebugMessages);
+			debug.append("Sending secure sms: '" + smsMsg + "'");
+			// TODO send the SMS message
+			if (smsMsg.length() > 160) {
+				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
+						+ recipient);
+				sendLongSMS(recipient, smsMsg);
+			} else {
+				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
+						+ recipient);
+				sendSMS(recipient, smsMsg);
+			}
 		} else {
-			Log.i(TAG, "sms is " + smsMsg + " and recipient is " + recipient);
-			sendSMS(recipient, smsMsg);
+			Log.w(TAG, "Cant's send sms");
 		}
+
+	}
+
+	private void alert(String message) {
+		AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
+
+		dialogBuilder
+				.setTitle(message)
+				.setMessage(message)
+				.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {
+						// continue with delete
+					}
+				})
+				.setNegativeButton("Cancel",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog,
+									int which) {
+								// do nothing
+							}
+						});
+
+		AlertDialog alertDialog = dialogBuilder.create();
+		alertDialog.show();
 	}
 
 }

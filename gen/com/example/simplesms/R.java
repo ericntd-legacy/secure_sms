@@ -50,8 +50,9 @@ public final class R {
         public static final int btn_share_key=0x7f050004;
         /**  Debugging 
          */
-        public static final int debug_messages=0x7f050007;
+        public static final int debug_messages=0x7f050008;
         public static final int hello_world=0x7f050002;
+        public static final int input_recipient_num=0x7f050007;
         /**  Inputs 
          */
         public static final int input_text_message=0x7f050006;

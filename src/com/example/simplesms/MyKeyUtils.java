@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
@@ -87,12 +88,16 @@ public class MyKeyUtils {
 				PublicKey pubKey = fact.generatePublic(pubKeySpec);
 
 				// TODO encrypt the message and send it
-				Cipher cipher = Cipher.getInstance("RSA");
+				//Cipher cipher = Cipher.getInstance("RSA/ECB/OAEP", "BC");
+				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 				cipher.init(Cipher.ENCRYPT_MODE, pubKey);
 				byte[] msgByteArray = msg.getBytes();
-				byte[] cipherData = cipher.doFinal(msgByteArray);
-
-				return cipherData;
+				
+					byte[] cipherData = cipher.doFinal(msgByteArray);
+					Log.d(TAG, "is the measurement already broken into chunks here? "+(new String(cipherData)));
+					return cipherData;
+				
+				
 
 			} catch (NoSuchAlgorithmException e) {
 				Log.e(TAG, "RSA algorithm not available", e);
@@ -106,7 +111,11 @@ public class MyKeyUtils {
 				Log.e(TAG, "", e);
 			} catch (IllegalBlockSizeException e) {
 				Log.e(TAG, "", e);
-			}
+			} catch (Exception e) {
+				Log.e(TAG, "", e);
+			} /*catch (NoSuchProviderException e) {
+				Log.e(TAG, "", e);
+			}*/
 		}
 		return null;
 	}

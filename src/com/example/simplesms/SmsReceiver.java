@@ -88,7 +88,7 @@ public class SmsReceiver extends BroadcastReceiver {
 		// TODO get the modulus and exponent of the public key of the sender &
 		// reconstruct the public key
 		String contactNum = sender;
-		String[] parts = message.split(" ");
+		String[] parts = message.split(" "); // expected structure of the key exchange message: "keyx modBase64Encoded expBase64Encoded"
 		if (parts.length == 3) {
 			String recipientPubModBase64Str = parts[1];
 			String recipientPubExpBase64Str = parts[2];
@@ -104,7 +104,7 @@ public class SmsReceiver extends BroadcastReceiver {
 			 */
 
 			byte[] recipientPubModBA = Base64.decode(recipientPubModBase64Str,
-					Base64.DEFAULT);
+					Base64.DEFAULT); // TODO to decide whether to use NO_WRAP or NO_PADDING here
 			byte[] recipientPubExpBA = Base64.decode(recipientPubExpBase64Str,
 					Base64.DEFAULT);
 			BigInteger recipientPubMod = new BigInteger(recipientPubModBA);

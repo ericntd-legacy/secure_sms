@@ -11,7 +11,9 @@ import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -91,6 +93,15 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 
 		Log.i(TAG, "onCreate");
+		
+		for (Provider provider : Security.getProviders())
+		  {
+			Log.i(TAG, "provider: "+provider.getName());
+		   for (Provider.Service service : provider.getServices())
+		   {
+		     Log.i(TAG, "algo " + service.getAlgorithm());
+		   }
+		 }
 
 		debugMessages = (TextView) findViewById(R.id.DebugMessages);
 		debugMessages.setMovementMethod(new ScrollingMovementMethod());
@@ -783,20 +794,24 @@ public class MainActivity extends Activity {
 		String msg = smsMessage.getText().toString();
 
 		if (msg != null && msg.length() != 0) {
+			Log.d(TAG, "measurement before encryption: "+msg);
 			String encryptedMsg = Base64.encodeToString(
 					MyKeyUtils.encryptMsg(msg, recipientsPubKey),
-					Base64.DEFAULT);
+					Base64.NO_WRAP);// NO_WRAP is necessary, otherwise the string will be broken into multiple lines i.e. CRLF or LF characters are included
 
 			// TODO encode the main content of the message and compose the SMS
 			// message
+			
 			String smsMsg = HEALTH_SMS + " " + encryptedMsg;
 			TextView debug = (TextView) findViewById(R.id.DebugMessages);
-			debug.append("Sending secure sms: '" + smsMsg + "'");
+			debug.append("Sending secure sms: '" + smsMsg + "' with length: "+smsMsg.length());
 			// TODO send the SMS message
 			if (smsMsg.length() > 160) {
 				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
 						+ recipient);
 				sendLongSMS(recipient, smsMsg);
+				// for testing only
+				//sendSMS(recipient, "gmstelehealth eKAoUlBFA9JEU31pRjHa"); //this message should be short enough or is it?
 			} else {
 				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
 						+ recipient);

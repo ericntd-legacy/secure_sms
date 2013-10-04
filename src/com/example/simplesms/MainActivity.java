@@ -723,7 +723,7 @@ public class MainActivity extends Activity {
 					// TODO prompt user to enter a phone number
 					Log.w(TAG, "phone number not entered");
 
-					alert("recient's phone number");
+					alert("phone number not entered");
 
 				} else {
 					sendKeyExchangeSMS();
@@ -754,21 +754,20 @@ public class MainActivity extends Activity {
 																		// of
 																		// country
 																		// code
-				String messageStr = message.toString();
+				String messageStr = message.getText().toString();
 				if (recipientNum.length() == 0) {
 					// TODO prompt user to enter a phone number
 					Log.w(TAG, "phone number not entered");
 
-					alert("recient's phone number");
+					alert("Please enter a phone number");
 
 				} else if (messageStr.length() == 0) {
 					Log.w(TAG, "sms message not entered");
 
-					alert("sms message");
+					alert("Please enter a message");
 				} else {
 
-					sendSecureSMS(recipient.getText().toString(),
-							getApplicationContext());
+					sendSecureSMS(messageStr, recipientNum);
 
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
@@ -778,31 +777,37 @@ public class MainActivity extends Activity {
 		});
 	}
 
-	private void sendSecureSMS(String recipient, Context context) {
+	private void sendSecureSMS(String msg, String recipient) {
+		
 		// TODO check a public key for a recipient is stored
 		RSAPublicKeySpec recipientsPubKey = MyKeyUtils.getRecipientsPublicKey(
 				recipient, context);
-		if (recipientsPubKey != null) {
-
-		} else {
-			Log.e(TAG, "recipient's public key is not found");
+		Log.i(TAG, "recipient's RSAPublicKeySpec is "+recipientsPubKey);
+		if (recipientsPubKey == null) {
+			Log.e(TAG, "recipient's public key could not be retrieved");
 			alert("Public key not found for " + recipient);
+			debugMessages.setText("recipient's public key could not be retrieved");
 			return;
 		}
+		
+		if (msg==null||recipient==null||msg.isEmpty()||recipient.isEmpty()) {
+			Log.e(TAG, "this should never happen but it does; either message or recipient is not supplied");
+			alert("either message or recipient is not supplied");
+			debugMessages.setText("either message or recipient is not supplied");
+			return;
+		}
+		
+		Log.i(TAG, "sendSecureSMS("+msg+", "+recipient+")");
 
-		EditText smsMessage = (EditText) findViewById(R.id.InputSMS);
-		String msg = smsMessage.getText().toString();
-
-		if (msg != null && msg.length() != 0) {
+		try {
 			Log.d(TAG, "measurement before encryption: "+msg);
-			String encryptedMsg = Base64.encodeToString(
-					MyKeyUtils.encryptMsg(msg, recipientsPubKey),
-					Base64.NO_WRAP);// NO_WRAP is necessary, otherwise the string will be broken into multiple lines i.e. CRLF or LF characters are included
+			byte[] processedMeasurement = MyKeyUtils.encryptMsg(msg, recipientsPubKey);
+			String processedMeasurementStr = Base64.encodeToString(processedMeasurement,Base64.NO_WRAP);// NO_WRAP is necessary, otherwise the string will be broken into multiple lines i.e. CRLF or LF characters are included
 
 			// TODO encode the main content of the message and compose the SMS
 			// message
 			
-			String smsMsg = HEALTH_SMS + " " + encryptedMsg;
+			String smsMsg = HEALTH_SMS + " " + processedMeasurementStr;
 			TextView debug = (TextView) findViewById(R.id.DebugMessages);
 			debug.append("Sending secure sms: '" + smsMsg + "' with length: "+smsMsg.length());
 			// TODO send the SMS message
@@ -817,8 +822,8 @@ public class MainActivity extends Activity {
 						+ recipient);
 				sendSMS(recipient, smsMsg);
 			}
-		} else {
-			Log.w(TAG, "Cant's send sms");
+		} catch (Exception e) {
+			Log.e(TAG, "Exception happens", e);
 		}
 
 	}

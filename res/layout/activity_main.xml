@@ -51,26 +51,23 @@
         android:ems="10"
         android:hint="@string/input_text_message" />
 
-    <Button
-        android:id="@+id/BtnSendSMS"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignLeft="@+id/InputSMS"
-        android:layout_below="@+id/InputSMS"
-        android:layout_marginTop="30dp"
-        android:text="@string/btn_send_sms" />
+        <Button
+            android:id="@+id/BtnSendSMS"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/InputSMS"
+            android:layout_toRightOf="@+id/InputSMS"
+            android:text="@string/btn_send_sms" />
 
         <TextView
             android:id="@+id/DebugMessages"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-           	android:layout_alignLeft="@+id/BtnSendSMS"
-        	android:layout_below="@+id/BtnSendSMS"
-        	
-            android:layout_marginTop="30dp"
+            android:layout_alignLeft="@+id/InputSMS"
+            android:layout_below="@+id/BtnSendSMS"
+            android:layout_marginTop="26dp"
             android:maxLines="9"
             android:scrollbars="vertical"
             android:text="@string/debug_messages" />
-
 
 </RelativeLayout>

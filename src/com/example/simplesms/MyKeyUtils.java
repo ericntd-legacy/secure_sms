@@ -75,13 +75,13 @@ public class MyKeyUtils {
 
 			return pubKeySpec;
 		}
-			Log.w(TAG, "recipient's public key not found");
-			return null;
+		Log.w(TAG, "recipient's public key not found");
+		return null;
 		
 	}
 
 	protected static byte[] encryptMsg(String msg, RSAPublicKeySpec pubKeySpec) {
-		if (msg != null && pubKeySpec != null && msg.length() != 0) {
+		if (msg != null && pubKeySpec != null && !msg.isEmpty()) {
 			try {
 				KeyFactory fact = KeyFactory.getInstance("RSA");
 

@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import sg.edu.dukenus.securesms.crypto.MyKeyUtils;
 import sg.edu.dukenus.securesms.utils.MyUtils;
 
-import com.example.simplesms.R;
-
 import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;

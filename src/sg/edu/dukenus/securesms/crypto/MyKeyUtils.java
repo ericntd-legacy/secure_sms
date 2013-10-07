@@ -1,4 +1,4 @@
-package sg.edu.dukenus.crypto;
+package sg.edu.dukenus.securesms.crypto;
 
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -33,6 +33,30 @@ public class MyKeyUtils {
 	private static final String PREF_PRIVATE_EXP = "PrivateExponent";
 
 	private static final String DEFAULT_PREF = "";
+	
+	/*
+	 * get the modulus from sharedpreferences
+	 */
+	public static String getPubMod(String contactNum, Context context) {
+		SharedPreferences prefs = context.getSharedPreferences(contactNum,
+				Context.MODE_PRIVATE);
+
+		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
+		
+		return pubMod;
+	}
+	
+	/*
+	 * get the modulus from sharedpreferences
+	 */
+	public static String getPubExp(String contactNum, Context context) {
+		SharedPreferences prefs = context.getSharedPreferences(contactNum,
+				Context.MODE_PRIVATE);
+
+		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		
+		return pubExp;
+	}
 
 	protected static RSAPublicKeySpec getPublicKeySpec(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS,
@@ -56,7 +80,7 @@ public class MyKeyUtils {
 			return null;
 	}
 	
-	protected static RSAPublicKeySpec getRecipientsPublicKey(String contactNum, Context context) {
+	public static RSAPublicKeySpec getRecipientsPublicKey(String contactNum, Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(contactNum,
 				Context.MODE_PRIVATE);
 
@@ -82,7 +106,7 @@ public class MyKeyUtils {
 		
 	}
 
-	protected static byte[] encryptMsg(String msg, RSAPublicKeySpec pubKeySpec) {
+	public static byte[] encryptMsg(String msg, RSAPublicKeySpec pubKeySpec) {
 		if (msg != null && pubKeySpec != null && !msg.isEmpty()) {
 			try {
 				KeyFactory fact = KeyFactory.getInstance("RSA");

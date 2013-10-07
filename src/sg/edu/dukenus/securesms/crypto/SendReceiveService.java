@@ -1,4 +1,4 @@
-package sg.edu.dukenus.crypto;
+package sg.edu.dukenus.securesms.crypto;
 
 import com.example.simplesms.R;
 
@@ -73,7 +73,7 @@ public class SendReceiveService extends Service {
 	 * the same process as its clients, we don't need to deal with IPC.
 	 */
 	public class LocalBinder extends Binder {
-		SendReceiveService getService() {
+		public SendReceiveService getService() {
 			return SendReceiveService.this;
 		}
 	}

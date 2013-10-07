@@ -1,4 +1,5 @@
-package sg.edu.dukenus.crypto;
+package sg.edu.dukenus.securesms;
+
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -23,6 +24,12 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
+import sg.edu.dukenus.securesms.crypto.MyKeyUtils;
+import sg.edu.dukenus.securesms.crypto.SendReceiveService;
+import sg.edu.dukenus.securesms.sms.SmsReceiver;
+import sg.edu.dukenus.securesms.sms.SmsSender;
+import sg.edu.dukenus.securesms.utils.MyUtils;
 
 import com.example.simplesms.R;
 
@@ -62,6 +69,10 @@ public class MainActivity extends Activity {
 	private final boolean D = true;
 	private final boolean RESET = false;
 	private TextView debugMessages;
+	
+	// SMS classes
+	private SmsSender smsSender;
+	private SmsReceiver smsReceiver;
 
 	// sharedpreferences
 	private final String PREFS = "MyKeys";
@@ -303,48 +314,6 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	public void sendLongSMS(String phoneNum, String message) {
-		String SENT = "SMS_SENT";
-		String DELIVERED = "SMS_DELIVERED";
-		SmsManager sm = SmsManager.getDefault();
-		ArrayList<String> parts = sm.divideMessage(message);
-
-		int numParts = parts.size();
-
-		ArrayList<PendingIntent> sentIntents = new ArrayList<PendingIntent>();
-		ArrayList<PendingIntent> deliveryIntents = new ArrayList<PendingIntent>();
-
-		for (int i = 0; i < numParts; i++) {
-			sentIntents.add(PendingIntent.getBroadcast(getApplicationContext(),
-					0, new Intent(SENT), 0));
-			deliveryIntents.add(PendingIntent.getBroadcast(
-					getApplicationContext(), 0, new Intent(DELIVERED), 0));
-		}
-
-		sm.sendMultipartTextMessage(phoneNum, null, parts, sentIntents,
-				deliveryIntents);
-	}
-
-	public void sendSMS(String phoneNum, String message) {
-		String SENT = "SMS_SENT";
-		String DELIVERED = "SMS_DELIVERED";
-
-		PendingIntent sentPI = PendingIntent.getBroadcast(this, 0, new Intent(
-				SENT), 0);
-
-		PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
-				new Intent(DELIVERED), 0);
-
-		SmsManager sms = SmsManager.getDefault();
-		try {
-			sms.sendTextMessage(phoneNum, null, message, sentPI, deliveredPI);
-		} catch (IllegalArgumentException e) {
-			Log.e(TAG,
-					"some information is not correct e.g. recipient's phone number",
-					e);
-		}
-	}
-
 	/*
 	 * Check if keys are found in the app's SharedPreferences if not, generate
 	 * them and save them to the app's SharedPreferences
@@ -408,7 +377,7 @@ public class MainActivity extends Activity {
 			 * "Having trouble saving key file", e); }
 			 */
 		} else {
-			alert("Keys exist, not generating");
+			MyUtils.alert("Keys exist, not generating", MainActivity.this);
 			byte[] myPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
 			byte[] myPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			byte[] myPrivateModBA = Base64.decode(privateMod, Base64.DEFAULT);
@@ -494,40 +463,6 @@ public class MainActivity extends Activity {
 			Log.e(TAG, "Base64.encode() method not available", e);
 		}
 		// TODO extract the modulus and exponent and save them
-	}
-
-	public void sendKeyExchangeSMS(String recipient, String mod, String exp) {
-		if (mod.length() != 0 && exp.length() != 0) {
-			String msg = "keyx " + mod + " " + exp;
-			Log.i(TAG, "Sending key exchange sms: '" + msg + "'");
-			TextView debug = (TextView) findViewById(R.id.DebugMessages);
-			debug.append("Sending key exchange sms: '" + msg + "'");
-			if (msg.length() > 160) {
-				sendLongSMS(recipient, msg);
-			} else {
-				sendSMS(recipient, msg);
-			}
-		} else {
-			Log.w(TAG, "mod or exp can't be empty string");
-		}
-	}
-
-	private void sendKeyExchangeSMS() {
-		// TODO to retrieve the modulus and exponent of the curent user's public
-		// key
-		SharedPreferences prefs = getSharedPreferences(PREFS,
-				Context.MODE_PRIVATE);
-
-		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-
-		EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
-		if (pubMod.length() != 0 && pubExp.length() != 0) {
-			sendKeyExchangeSMS(recipient.getText().toString(), pubMod, pubExp);
-		} else {
-			Log.w(TAG, "mod or exp can't be empty string");
-			alert("key not found, please generate first");
-		}
 	}
 
 	public void savePrivateKey(RSAPrivateKeySpec privateKey) {
@@ -734,10 +669,11 @@ public class MainActivity extends Activity {
 					// TODO prompt user to enter a phone number
 					Log.w(TAG, "phone number not entered");
 
-					alert("phone number not entered");
+					MyUtils.alert("phone number not entered", MainActivity.this);
 
 				} else {
-					sendKeyExchangeSMS();
+					smsSender = new SmsSender(recipientNum);
+					smsSender.sendKeyExchangeSMS(getApplicationContext());
 
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
@@ -770,15 +706,15 @@ public class MainActivity extends Activity {
 					// TODO prompt user to enter a phone number
 					Log.w(TAG, "phone number not entered");
 
-					alert("Please enter a phone number");
+					MyUtils.alert("Please enter a phone number", MainActivity.this);
 
 				} else if (messageStr.length() == 0) {
 					Log.w(TAG, "sms message not entered");
 
-					alert("Please enter a message");
+					MyUtils.alert("Please enter a message", MainActivity.this);
 				} else {
-
-					sendSecureSMS(messageStr, recipientNum);
+					smsSender = new SmsSender(recipientNum, messageStr);
+					smsSender.sendSecureSMS(getApplicationContext());
 
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
 					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
@@ -786,80 +722,6 @@ public class MainActivity extends Activity {
 				}
 			}
 		});
-	}
-
-	private void sendSecureSMS(String msg, String recipient) {
-		
-		// TODO check a public key for a recipient is stored
-		RSAPublicKeySpec recipientsPubKey = MyKeyUtils.getRecipientsPublicKey(
-				recipient, context);
-		Log.i(TAG, "recipient's RSAPublicKeySpec is "+recipientsPubKey);
-		if (recipientsPubKey == null) {
-			Log.e(TAG, "recipient's public key could not be retrieved");
-			alert("Public key not found for " + recipient);
-			debugMessages.setText("recipient's public key could not be retrieved");
-			return;
-		}
-		
-		if (msg==null||recipient==null||msg.isEmpty()||recipient.isEmpty()) {
-			Log.e(TAG, "this should never happen but it does; either message or recipient is not supplied");
-			alert("either message or recipient is not supplied");
-			debugMessages.setText("either message or recipient is not supplied");
-			return;
-		}
-		
-		Log.i(TAG, "sendSecureSMS("+msg+", "+recipient+")");
-
-		try {
-			Log.d(TAG, "measurement before encryption: "+msg+" and recipient's key is not null "+(recipientsPubKey!=null));
-			byte[] processedMeasurement = MyKeyUtils.encryptMsg(msg, recipientsPubKey);
-			String processedMeasurementStr = Base64.encodeToString(processedMeasurement,Base64.NO_WRAP);// NO_WRAP is necessary, otherwise the string will be broken into multiple lines i.e. CRLF or LF characters are included
-
-			// TODO encode the main content of the message and compose the SMS
-			// message
-			
-			String smsMsg = HEALTH_SMS + " " + processedMeasurementStr;
-			TextView debug = (TextView) findViewById(R.id.DebugMessages);
-			debug.append("Sending secure sms: '" + smsMsg + "' with length: "+smsMsg.length());
-			// TODO send the SMS message
-			if (smsMsg.length() > 160) {
-				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
-						+ recipient);
-				sendLongSMS(recipient, smsMsg);
-				// for testing only
-				//sendSMS(recipient, "gmstelehealth eKAoUlBFA9JEU31pRjHa"); //this message should be short enough or is it?
-			} else {
-				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
-						+ recipient);
-				sendSMS(recipient, smsMsg);
-			}
-		} catch (Exception e) {
-			Log.e(TAG, "Exception happens", e);
-		}
-
-	}
-
-	private void alert(String message) {
-		AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(context);
-
-		dialogBuilder
-				.setTitle(message)
-				.setMessage(message)
-				.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface dialog, int which) {
-						// continue with delete
-					}
-				})
-				.setNegativeButton("Cancel",
-						new DialogInterface.OnClickListener() {
-							public void onClick(DialogInterface dialog,
-									int which) {
-								// do nothing
-							}
-						});
-
-		AlertDialog alertDialog = dialogBuilder.create();
-		alertDialog.show();
 	}
 
 }

@@ -1,4 +1,4 @@
-package com.example.simplesms;
+package sg.edu.dukenus.crypto;
 
 import java.math.BigInteger;
 import java.security.InvalidKeyException;

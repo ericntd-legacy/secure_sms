@@ -1,4 +1,6 @@
-package com.example.simplesms;
+package sg.edu.dukenus.crypto;
+
+import com.example.simplesms.R;
 
 import android.app.Notification;
 import android.app.NotificationManager;

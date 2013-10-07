@@ -1,4 +1,4 @@
-package com.example.simplesms;
+package sg.edu.dukenus.crypto;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -23,6 +23,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
+import com.example.simplesms.R;
 
 import android.os.Bundle;
 import android.os.IBinder;
@@ -71,7 +73,7 @@ public class MainActivity extends Activity {
 	private final String PREF_PRIVATE_EXP = "PrivateExponent";
 
 	private final String DEFAULT_PREF = "";
-	//private final String DEFAULT_RECIPIENT_NUM = "93628809";
+	private final String DEFAULT_CONTACT_NUM = "+6584781395";
 
 	//private final String PREF_RECIPIENT_NUM = "RecipientNum";
 
@@ -94,14 +96,14 @@ public class MainActivity extends Activity {
 
 		Log.i(TAG, "onCreate");
 		
-		for (Provider provider : Security.getProviders())
+		/*for (Provider provider : Security.getProviders())
 		  {
-			Log.i(TAG, "provider: "+provider.getName());
+			Log.d(TAG, "provider: "+provider.getName());
 		   for (Provider.Service service : provider.getServices())
 		   {
-		     Log.i(TAG, "algo " + service.getAlgorithm());
+		     Log.d(TAG, "algo " + service.getAlgorithm());
 		   }
-		 }
+		}*/
 
 		debugMessages = (TextView) findViewById(R.id.DebugMessages);
 		debugMessages.setMovementMethod(new ScrollingMovementMethod());
@@ -171,9 +173,18 @@ public class MainActivity extends Activity {
 
 		registerReceivers();
 
-		String message = "gmstelehealth @systolic=100@ @diastolic=70@ @hr=70@";
+		//String message = "gmstelehealth @systolic=100@ @diastolic=70@ @hr=70@";
 		// sendEncryptedMessage(message);
-
+		
+		// TODO Check keys in SharedPreferences for server's number +6584781395
+		SharedPreferences prefs = getSharedPreferences(DEFAULT_CONTACT_NUM, Context.MODE_PRIVATE);
+		String contactPubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
+		String contactPubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		if (!contactPubMod.isEmpty()&&!contactPubExp.isEmpty()) {
+			Log.i(TAG, "public key stored for "+DEFAULT_CONTACT_NUM+" with mod: "+contactPubMod+" and exp: "+contactPubExp);
+		} else {
+			Log.w(TAG, "public key not found for "+DEFAULT_CONTACT_NUM+" so where did it go?");
+		}
 	}
 
 	@Override
@@ -800,7 +811,7 @@ public class MainActivity extends Activity {
 		Log.i(TAG, "sendSecureSMS("+msg+", "+recipient+")");
 
 		try {
-			Log.d(TAG, "measurement before encryption: "+msg);
+			Log.d(TAG, "measurement before encryption: "+msg+" and recipient's key is not null "+(recipientsPubKey!=null));
 			byte[] processedMeasurement = MyKeyUtils.encryptMsg(msg, recipientsPubKey);
 			String processedMeasurementStr = Base64.encodeToString(processedMeasurement,Base64.NO_WRAP);// NO_WRAP is necessary, otherwise the string will be broken into multiple lines i.e. CRLF or LF characters are included
 

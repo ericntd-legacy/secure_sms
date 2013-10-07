@@ -1,4 +1,4 @@
-package com.example.simplesms;
+package sg.edu.dukenus.crypto;
 
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -69,9 +69,11 @@ public class MyKeyUtils {
 			byte[] pubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			BigInteger pubModBI = new BigInteger(pubModBA);
 			BigInteger pubExpBI = new BigInteger(pubExpBA);
-
+			Log.i(TAG, "public modulus is "+pubModBI+" and public exponent is "+pubExpBI+" in base 256 "+pubModBA+" "+pubExpBA);
+			
 			RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(pubModBI,
 					pubExpBI);
+			//X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
 
 			return pubKeySpec;
 		}
@@ -88,12 +90,15 @@ public class MyKeyUtils {
 				PublicKey pubKey = fact.generatePublic(pubKeySpec);
 
 				// TODO encrypt the message and send it
-				//Cipher cipher = Cipher.getInstance("RSA/ECB/OAEP", "BC");
+				//Cipher cipher = Cipher.getInstance("RSA/None/NoPadding");
 				Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+				//Cipher cipher = Cipher.getInstance("RSA/None/OAEPWithSHA1AndMGF1Padding", "BC");
 				cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+				Log.d(TAG, "cipher block size is "+cipher.getBlockSize());
 				byte[] msgByteArray = msg.getBytes();
-				
-					byte[] cipherData = cipher.doFinal(msgByteArray);
+				byte[] cipherData = new byte[cipher.getOutputSize(msgByteArray.length)];
+					cipherData = cipher.doFinal(msgByteArray);
+					Log.d(TAG, "output size is "+cipher.getOutputSize(msgByteArray.length));
 					Log.d(TAG, "is the measurement already broken into chunks here? "+(new String(cipherData)));
 					return cipherData;
 				

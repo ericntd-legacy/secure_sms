@@ -25,15 +25,15 @@ public class MyKeyUtils {
 	private static final String TAG = "MyKeyUtils";
 
 	// sharedpreferences
-	private static final String PREFS = "MyKeys";
+	public static final String PREFS = "MyKeys";
 
-	private static final String PREF_PUBLIC_MOD = "PublicModulus";
-	private static final String PREF_PUBLIC_EXP = "PublicExponent";
-	private static final String PREF_PRIVATE_MOD = "PrivateModulus";
-	private static final String PREF_PRIVATE_EXP = "PrivateExponent";
+	public static final String PREF_PUBLIC_MOD = "PublicModulus";
+	public static final String PREF_PUBLIC_EXP = "PublicExponent";
+	public static final String PREF_PRIVATE_MOD = "PrivateModulus";
+	public static final String PREF_PRIVATE_EXP = "PrivateExponent";
 
-	private static final String DEFAULT_PREF = "";
-	
+	public static final String DEFAULT_PREF = "";
+	public static final String DEFAULT_CONTACT_NUM = "+6584781395";
 	/*
 	 * get the modulus from sharedpreferences
 	 */

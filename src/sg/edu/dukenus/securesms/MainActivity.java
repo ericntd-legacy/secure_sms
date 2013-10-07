@@ -75,16 +75,6 @@ public class MainActivity extends Activity {
 	private SmsReceiver smsReceiver;
 
 	// sharedpreferences
-	private final String PREFS = "MyKeys";
-	//private final String PREFS_RECIPIENT = "RecipientsKeys";
-
-	private final String PREF_PUBLIC_MOD = "PublicModulus";
-	private final String PREF_PUBLIC_EXP = "PublicExponent";
-	private final String PREF_PRIVATE_MOD = "PrivateModulus";
-	private final String PREF_PRIVATE_EXP = "PrivateExponent";
-
-	private final String DEFAULT_PREF = "";
-	private final String DEFAULT_CONTACT_NUM = "+6584781395";
 
 	//private final String PREF_RECIPIENT_NUM = "RecipientNum";
 
@@ -94,7 +84,7 @@ public class MainActivity extends Activity {
 	// others
 	//private final String DES_NUM = "93628809";
 
-	final Context context = this;
+	//final Context context = this;
 
 	// SMS codes
 	private final String KEYX = "keyx";
@@ -159,7 +149,7 @@ public class MainActivity extends Activity {
 		// doBindService();
 
 		// TODO to send the public key send via sms
-		// SharedPreferences prefs = getSharedPreferences(PREFS,
+		// SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
 		// Context.MODE_PRIVATE);
 		// SmsManager smsManager = SmsManager.getDefault();
 
@@ -188,13 +178,13 @@ public class MainActivity extends Activity {
 		// sendEncryptedMessage(message);
 		
 		// TODO Check keys in SharedPreferences for server's number +6584781395
-		SharedPreferences prefs = getSharedPreferences(DEFAULT_CONTACT_NUM, Context.MODE_PRIVATE);
-		String contactPubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String contactPubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.DEFAULT_CONTACT_NUM, Context.MODE_PRIVATE);
+		String contactPubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
+		String contactPubExp = prefs.getString(MyKeyUtils.PREF_PUBLIC_EXP, MyKeyUtils.DEFAULT_PREF);
 		if (!contactPubMod.isEmpty()&&!contactPubExp.isEmpty()) {
-			Log.i(TAG, "public key stored for "+DEFAULT_CONTACT_NUM+" with mod: "+contactPubMod+" and exp: "+contactPubExp);
+			Log.i(TAG, "public key stored for "+MyKeyUtils.DEFAULT_CONTACT_NUM+" with mod: "+contactPubMod+" and exp: "+contactPubExp);
 		} else {
-			Log.w(TAG, "public key not found for "+DEFAULT_CONTACT_NUM+" so where did it go?");
+			Log.w(TAG, "public key not found for "+MyKeyUtils.DEFAULT_CONTACT_NUM+" so where did it go?");
 		}
 	}
 
@@ -248,7 +238,7 @@ public class MainActivity extends Activity {
 		String st = new String(num.toByteArray());
 
 		// Log.i(TAG, "modulus/ exponent length in bytes is " + st.length());
-		SharedPreferences prefs = getSharedPreferences(PREFS,
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
 				Context.MODE_PRIVATE);
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 
@@ -256,7 +246,7 @@ public class MainActivity extends Activity {
 		// prefsEditor.putString(PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
 		prefsEditor.commit();
 
-		// Log.i(TAG, prefs.getString(pref, DEFAULT_PREF) +
+		// Log.i(TAG, prefs.getString(pref, MyKeyUtils.DEFAULT_PREF) +
 		// " was successfully stored as "+pref );
 	}*/
 
@@ -320,18 +310,18 @@ public class MainActivity extends Activity {
 	 */
 	private void handleKeys() {
 
-		SharedPreferences prefs = getSharedPreferences(PREFS,
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
 				Context.MODE_PRIVATE);
-		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
-		String privateMod = prefs.getString(PREF_PRIVATE_MOD, DEFAULT_PREF);
-		String privateExp = prefs.getString(PREF_PRIVATE_EXP, DEFAULT_PREF);
+		String pubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
+		String pubExp = prefs.getString(MyKeyUtils.PREF_PUBLIC_EXP, MyKeyUtils.DEFAULT_PREF);
+		String privateMod = prefs.getString(MyKeyUtils.PREF_PRIVATE_MOD, MyKeyUtils.DEFAULT_PREF);
+		String privateExp = prefs.getString(MyKeyUtils.PREF_PRIVATE_EXP, MyKeyUtils.DEFAULT_PREF);
 
 		boolean keysExist = false;
 
-		if (!pubMod.equals(DEFAULT_PREF) && !pubExp.equals(DEFAULT_PREF)
-				&& !privateMod.equals(DEFAULT_PREF)
-				&& !privateExp.equals(DEFAULT_PREF)) {
+		if (!pubMod.equals(MyKeyUtils.DEFAULT_PREF) && !pubExp.equals(MyKeyUtils.DEFAULT_PREF)
+				&& !privateMod.equals(MyKeyUtils.DEFAULT_PREF)
+				&& !privateExp.equals(MyKeyUtils.DEFAULT_PREF)) {
 			Log.i(TAG, "keys found, not regenerating");
 			keysExist = true;
 		} else {
@@ -426,13 +416,13 @@ public class MainActivity extends Activity {
 	}*/
 
 	public void savePublicKey(String mod, String exp) {
-		SharedPreferences prefs = getSharedPreferences(PREFS,
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
 				Context.MODE_PRIVATE);
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 
-		prefsEditor.putString(PREF_PUBLIC_MOD, mod);
-		prefsEditor.putString(PREF_PUBLIC_EXP, exp);
-		// prefsEditor.putString(PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
+		prefsEditor.putString(MyKeyUtils.PREF_PUBLIC_MOD, mod);
+		prefsEditor.putString(MyKeyUtils.PREF_PUBLIC_EXP, exp);
+		// prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
 		prefsEditor.commit();
 	}
 
@@ -494,13 +484,13 @@ public class MainActivity extends Activity {
 	}
 
 	private void savePrivateKey(String mod, String exp) {
-		SharedPreferences prefs = getSharedPreferences(PREFS,
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
 				Context.MODE_PRIVATE);
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 
-		prefsEditor.putString(PREF_PRIVATE_MOD, mod);
-		prefsEditor.putString(PREF_PRIVATE_EXP, exp);
-		// prefsEditor.putString(PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
+		prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, mod);
+		prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_EXP, exp);
+		// prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
 		prefsEditor.commit();
 	}
 
@@ -513,11 +503,11 @@ public class MainActivity extends Activity {
 		SharedPreferences prefs = getSharedPreferences(PREFS_RECIPIENT,
 				Context.MODE_PRIVATE);
 
-		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
-		String pubExp = prefs.getString(PREF_PUBLIC_EXP, DEFAULT_PREF);
+		String pubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
+		String pubExp = prefs.getString(MyKeyUtils.PREF_PUBLIC_EXP, MyKeyUtils.DEFAULT_PREF);
 		String recipient = prefs.getString(PREF_RECIPIENT_NUM,
 				DEFAULT_RECIPIENT_NUM);
-		if (!pubMod.equals(DEFAULT_PREF) && !pubExp.equals(DEFAULT_PREF)) {
+		if (!pubMod.equals(MyKeyUtils.DEFAULT_PREF) && !pubExp.equals(MyKeyUtils.DEFAULT_PREF)) {
 			byte[] curPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
 			byte[] curPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
 			BigInteger curPubMod = new BigInteger(curPubModBA);

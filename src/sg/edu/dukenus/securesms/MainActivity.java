@@ -678,7 +678,7 @@ public class MainActivity extends Activity {
 			public void onClick(View v) {
 				// TODO encrypt the SMS message using the public key of the
 				// intended recipient and send it
-				EditText message = (EditText) findViewById(R.id.InputSMS);
+				EditText measurementField = (EditText) findViewById(R.id.InputSMS);
 				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
 				String recipientNum = recipient.getText().toString();// TODO
 																		// must
@@ -691,23 +691,23 @@ public class MainActivity extends Activity {
 																		// of
 																		// country
 																		// code
-				String messageStr = message.getText().toString();
+				String measurementStr = measurementField.getText().toString();
 				if (recipientNum.length() == 0) {
 					// TODO prompt user to enter a phone number
 					Log.w(TAG, "phone number not entered");
 
 					MyUtils.alert("Please enter a phone number", MainActivity.this);
 
-				} else if (messageStr.length() == 0) {
+				} else if (measurementStr.length() == 0) {
 					Log.w(TAG, "sms message not entered");
 
 					MyUtils.alert("Please enter a message", MainActivity.this);
 				} else {
-					smsSender = new SmsSender(recipientNum, messageStr);
-					smsSender.sendSecureSMS(getApplicationContext());
+					smsSender = new SmsSender(recipientNum);
+					smsSender.sendSecureSMS(getApplicationContext(), measurementStr);
 
 					InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-					imm.hideSoftInputFromWindow(message.getWindowToken(), 0);
+					imm.hideSoftInputFromWindow(measurementField.getWindowToken(), 0);
 					imm.hideSoftInputFromWindow(recipient.getWindowToken(), 0);
 				}
 			}

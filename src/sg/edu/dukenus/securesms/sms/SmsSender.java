@@ -115,22 +115,29 @@ public class SmsSender {
 			MyUtils.alert("key not found, please generate first", context);
 		}
 	}
-
-	public void sendSecureSMS(Context context) {
-
+	
+	/*
+	 * send health measurement securely
+	 * message should have format: "gmstelehealth [encrypted-then-encoded measurement]"
+	 */
+	public void sendSecureSMS(Context context, String measurementStr) {
+		if (measurementStr.length()>117) {
+			Log.e(TAG, "the measurement is too long for encryption with key size 1024 bits");
+			return;
+		}
+		//Log.w(TAG, "sending a secure SMS, recipient is "+this.recipientNum+" original message is "+this.message);
 		// TODO check a public key for a recipient is stored
 		RSAPublicKeySpec recipientsPubKey = MyKeyUtils.getRecipientsPublicKey(
 				this.recipientNum, context);
 		Log.i(TAG, "recipient's RSAPublicKeySpec is " + recipientsPubKey);
 		if (recipientsPubKey == null) {
-			Log.e(TAG, "recipient's public key could not be retrieved");
-			MyUtils.alert("Public key not found for " + this.recipientNum,
-					context);
+			Log.e(TAG, "recipient's public key could not be retrieved for "+this.recipientNum);
+			//MyUtils.alert("Public key not found for " + this.recipientNum, context);
 			// debugMessages.setText("recipient's public key could not be retrieved");
 			return;
 		}
 
-		if (this.recipientNum == null || this.message == null
+		/*if (this.recipientNum == null || this.message == null
 				|| this.message.isEmpty() || this.recipientNum.isEmpty()) {
 			Log.e(TAG,
 					"this should never happen but it does; either message or recipient is not supplied");
@@ -138,19 +145,19 @@ public class SmsSender {
 					context);
 			// debugMessages.setText("either message or recipient is not supplied");
 			return;
-		}
+		}*/
 
 		Log.i(TAG, "sendSecureSMS(" + this.message + ", " + this.recipientNum
 				+ ")");
 
 		try {
-			Log.d(TAG, "measurement before encryption: " + this.message
+			Log.d(TAG, "measurement before encryption: " + measurementStr
 					+ " and recipient's key is not null "
 					+ (recipientsPubKey != null));
-			byte[] processedMeasurement = MyKeyUtils.encryptMsg(this.message,
+			byte[] encrypted = MyKeyUtils.encryptMsg(measurementStr,
 					recipientsPubKey);
 			String processedMeasurementStr = Base64.encodeToString(
-					processedMeasurement, Base64.NO_WRAP);// NO_WRAP is
+					encrypted, Base64.NO_WRAP);// NO_WRAP is
 															// necessary,
 															// otherwise the
 															// string will be
@@ -164,20 +171,26 @@ public class SmsSender {
 			// message
 
 			String smsMsg = HEALTH_SMS + " " + processedMeasurementStr;
+			Log.w(TAG, "measurement string after encryption: "+encrypted+ " and then after base64 encoding: "+processedMeasurementStr);
+			Log.w(TAG, "complete message to be sent: '"+smsMsg+"'");
+			
+			// set the final message to be sent
+			this.message = smsMsg;
+			
 			// TextView debug = (TextView) findViewById(R.id.DebugMessages);
 			// debug.append("Sending secure sms: '" + smsMsg +
 			// "' with length: "+smsMsg.length());
 			// TODO send the SMS message
 			Log.w(TAG, "length of the message is "+smsMsg.length());
 			if (smsMsg.length() > 160) {
-				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
+				Log.i(TAG, "sms is " + this.message + " and recipient is "
 						+ this.recipientNum);
 				sendLongSMS(context);
 				// for testing only
 				// sendSMS(recipient, "gmstelehealth eKAoUlBFA9JEU31pRjHa");
 				// //this message should be short enough or is it?
 			} else {
-				Log.i(TAG, "sms is " + smsMsg + " and recipient is "
+				Log.i(TAG, "sms is " + this.message + " and recipient is "
 						+ this.recipientNum);
 				sendSMS(context);
 			}

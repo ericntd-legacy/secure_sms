@@ -26,7 +26,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import sg.edu.dukenus.securesms.crypto.MyKeyUtils;
-import sg.edu.dukenus.securesms.crypto.SendReceiveService;
+import sg.edu.dukenus.securesms.service.SendReceiveService;
 import sg.edu.dukenus.securesms.sms.SmsReceiver;
 import sg.edu.dukenus.securesms.sms.SmsSender;
 import sg.edu.dukenus.securesms.utils.MyUtils;

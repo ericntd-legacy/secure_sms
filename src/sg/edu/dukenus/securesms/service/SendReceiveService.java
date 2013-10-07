@@ -1,4 +1,4 @@
-package sg.edu.dukenus.securesms.crypto;
+package sg.edu.dukenus.securesms.service;
 
 import com.example.simplesms.R;
 

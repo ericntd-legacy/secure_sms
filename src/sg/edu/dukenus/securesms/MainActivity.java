@@ -135,12 +135,6 @@ public class MainActivity extends Activity {
 		initialiseOnClickListeners();
 
 		/*
-		 * Check if keys are found in the app's SharedPreferences if not,
-		 * generate them and save them to the app's SharedPreferences
-		 */
-		// handleKeys();
-
-		/*
 		 * Handle the intended recipient's keys for testing
 		 */
 		// handleRecipientsKeys();
@@ -149,7 +143,7 @@ public class MainActivity extends Activity {
 		// doBindService();
 
 		// TODO to send the public key send via sms
-		// SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
+		// SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS_MY_KEYS,
 		// Context.MODE_PRIVATE);
 		// SmsManager smsManager = SmsManager.getDefault();
 
@@ -238,7 +232,7 @@ public class MainActivity extends Activity {
 		String st = new String(num.toByteArray());
 
 		// Log.i(TAG, "modulus/ exponent length in bytes is " + st.length());
-		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
+		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS_MY_KEYS,
 				Context.MODE_PRIVATE);
 		SharedPreferences.Editor prefsEditor = prefs.edit();
 
@@ -303,91 +297,6 @@ public class MainActivity extends Activity {
 			mIsBound = false;
 		}
 	}
-
-	/*
-	 * Check if keys are found in the app's SharedPreferences if not, generate
-	 * them and save them to the app's SharedPreferences
-	 */
-	private void handleKeys() {
-
-		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
-				Context.MODE_PRIVATE);
-		String pubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
-		String pubExp = prefs.getString(MyKeyUtils.PREF_PUBLIC_EXP, MyKeyUtils.DEFAULT_PREF);
-		String privateMod = prefs.getString(MyKeyUtils.PREF_PRIVATE_MOD, MyKeyUtils.DEFAULT_PREF);
-		String privateExp = prefs.getString(MyKeyUtils.PREF_PRIVATE_EXP, MyKeyUtils.DEFAULT_PREF);
-
-		boolean keysExist = false;
-
-		if (!pubMod.equals(MyKeyUtils.DEFAULT_PREF) && !pubExp.equals(MyKeyUtils.DEFAULT_PREF)
-				&& !privateMod.equals(MyKeyUtils.DEFAULT_PREF)
-				&& !privateExp.equals(MyKeyUtils.DEFAULT_PREF)) {
-			Log.i(TAG, "keys found, not regenerating");
-			keysExist = true;
-		} else {
-
-			keysExist = false;
-		}
-		if (!keysExist) {
-			Log.i(TAG, "keys not found, generating now");
-			try {
-
-				/*
-				 * Generating private and public key using RSA algorithm saving
-				 * the keys to the app's shared preferences
-				 */
-				KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-				kpg.initialize(2048);
-				KeyPair kp = kpg.genKeyPair();
-				Key publicKey = kp.getPublic();
-				Key privateKey = kp.getPrivate();
-
-				KeyFactory fact = KeyFactory.getInstance("RSA");
-				RSAPublicKeySpec pub = fact.getKeySpec(publicKey,
-						RSAPublicKeySpec.class);
-				RSAPrivateKeySpec priv = fact.getKeySpec(privateKey,
-						RSAPrivateKeySpec.class);
-
-				/*
-				 * save the public key to the app's SharedPreferences
-				 */
-				savePublicKey(pub);
-				/*
-				 * save the private key to the app's SharedPreferences
-				 */
-				savePrivateKey(priv);
-
-			} catch (NoSuchAlgorithmException e) {
-				Log.e(TAG, "RSA algorithm not available", e);
-			} catch (InvalidKeySpecException e) {
-				Log.e(TAG, "", e);
-			}
-			/*
-			 * catch (IOException e) { Log.e(TAG,
-			 * "Having trouble saving key file", e); }
-			 */
-		} else {
-			MyUtils.alert("Keys exist, not generating", MainActivity.this);
-			byte[] myPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
-			byte[] myPubExpBA = Base64.decode(pubExp, Base64.DEFAULT);
-			byte[] myPrivateModBA = Base64.decode(privateMod, Base64.DEFAULT);
-			byte[] myPrivateExpBA = Base64.decode(privateExp, Base64.DEFAULT);
-
-			BigInteger myPubModBI = new BigInteger(myPubModBA);
-			BigInteger myPubExpBI = new BigInteger(myPubExpBA);
-
-			BigInteger myPrivateModBI = new BigInteger(myPrivateModBA);
-			BigInteger myPrivateExpBI = new BigInteger(myPrivateExpBA);
-
-			Log.i(TAG, "the current user's stored public key modulus is "
-					+ myPubModBI + " while the exponent is " + myPubExpBI
-					+ " === private key modulus is " + myPrivateModBI
-					+ " and exponent is " + myPrivateExpBI);
-			TextView debug = (TextView) findViewById(R.id.DebugMessages);
-			debug.append("Keys exist, not generating");
-		}
-
-	}
 	
 
 	/*public void handlePublicKey(RSAPublicKeySpec publicKey) {
@@ -414,85 +323,6 @@ public class MainActivity extends Activity {
 			Log.e(TAG, "Base64.encode() method not available", e);
 		}
 	}*/
-
-	public void savePublicKey(String mod, String exp) {
-		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
-				Context.MODE_PRIVATE);
-		SharedPreferences.Editor prefsEditor = prefs.edit();
-
-		prefsEditor.putString(MyKeyUtils.PREF_PUBLIC_MOD, mod);
-		prefsEditor.putString(MyKeyUtils.PREF_PUBLIC_EXP, exp);
-		// prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
-		prefsEditor.commit();
-	}
-
-	private void savePublicKey(RSAPublicKeySpec pubKey) {
-		BigInteger pubModBI = pubKey.getModulus();
-		BigInteger pubExpBI = pubKey.getPublicExponent();
-
-		byte[] pubModBA = pubModBI.toByteArray();// Base64.encodeInteger(pubModBI);
-													// // for some strange
-													// reason this throws
-													// NoSuchMethodError
-		byte[] pubExpBA = pubExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
-
-		try {
-			String pubModBase64Str = Base64.encodeToString(pubModBA,
-					Base64.DEFAULT);
-			String pubExpBase64Str = Base64.encodeToString(pubExpBA,
-					Base64.DEFAULT);
-
-			Log.i(TAG, "the modulus of the current user's public key is "
-					+ pubModBI + " and the exponent is " + pubExpBI
-					+ " | encoded module is " + pubModBase64Str
-					+ " | encoded exponent is " + pubExpBase64Str);
-
-			savePublicKey(pubModBase64Str, pubExpBase64Str);
-
-		} catch (NoSuchMethodError e) {
-			Log.e(TAG, "Base64.encode() method not available", e);
-		}
-		// TODO extract the modulus and exponent and save them
-	}
-
-	public void savePrivateKey(RSAPrivateKeySpec privateKey) {
-		BigInteger privateModBI = privateKey.getModulus();
-		BigInteger privateExpBI = privateKey.getPrivateExponent();
-
-		byte[] privateModBA = privateModBI.toByteArray();// Base64.encodeInteger(pubModBI);
-															// // for some
-															// strange reason
-															// this throws
-															// NoSuchMethodError
-		byte[] privateExpBA = privateExpBI.toByteArray();// Base64.encodeInteger(pubExpBI);
-
-		try {
-			String privateModBase64Str = Base64.encodeToString(privateModBA,
-					Base64.DEFAULT);
-			String privateExpBase64Str = Base64.encodeToString(privateExpBA,
-					Base64.DEFAULT);
-			Log.i(TAG, "the modulus of the current user's private key is "
-					+ privateModBI + " and the exponent is " + privateExpBI
-					+ " | encoded module is " + privateModBase64Str
-					+ " | encoded exponent is " + privateExpBase64Str);
-
-			savePrivateKey(privateModBase64Str, privateExpBase64Str);
-
-		} catch (NoSuchMethodError e) {
-			Log.e(TAG, "Base64.encode() method not available", e);
-		}
-	}
-
-	private void savePrivateKey(String mod, String exp) {
-		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.PREFS,
-				Context.MODE_PRIVATE);
-		SharedPreferences.Editor prefsEditor = prefs.edit();
-
-		prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, mod);
-		prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_EXP, exp);
-		// prefsEditor.putString(MyKeyUtils.PREF_PRIVATE_MOD, DEFAULT_PRIVATE_MOD);
-		prefsEditor.commit();
-	}
 
 	/*public void sendEncryptedMessage(String msg) {
 		Log.i(TAG,
@@ -627,8 +457,14 @@ public class MainActivity extends Activity {
 		btnGenKeys.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				// TODO generate private and public keys and store them
-				handleKeys();
+				
+				/*EditText keySizeField = (EditText) findViewById();
+				int keySize = Integer.valueOf(keySizeField.getText().toString());*/
+				int keySize = 1024;
+				//MyKeyUtils.checkKeys(keySize, getApplicationContext());
+				// for now, we don't check, just re-generate anyway
+				MyKeyUtils.generateKeys(keySize, getApplicationContext());
+				
 				EditText recipient = (EditText) findViewById(R.id.InputRecipientNum);
 				EditText message = (EditText) findViewById(R.id.InputSMS);
 				InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);

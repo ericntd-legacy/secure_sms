@@ -104,6 +104,7 @@ public class MyKeyUtils {
 			BigInteger pubExpBI = new BigInteger(pubExpBA);
 			Log.i(TAG, "public modulus is "+pubModBI+" and public exponent is "+pubExpBI+" in base 256 "+pubModBA+" "+pubExpBA);
 			
+			// do I need to catch any exception for the following?
 			RSAPublicKeySpec pubKeySpec = new RSAPublicKeySpec(pubModBI,
 					pubExpBI);
 			//X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedKey);
@@ -162,7 +163,7 @@ public class MyKeyUtils {
 	 * Check if keys are found in the app's SharedPreferences if not, generate
 	 * them and save them to the app's SharedPreferences
 	 */
-	public static void checkKeys(int keySize, Context context) {
+	public static boolean getKeys(int keySize, Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PREFS_MY_KEYS,
 				Context.MODE_PRIVATE);
 		String pubMod = prefs.getString(PREF_PUBLIC_MOD, DEFAULT_PREF);
@@ -183,7 +184,8 @@ public class MyKeyUtils {
 		}
 		if (!keysExist) {
 			Log.w(TAG, "keys not found, generating");
-			generateKeys(keySize, context);
+			return generateKeys(keySize, context);
+			
 		} else {
 			//MyUtils.alert("Keys exist, not generating", MainActivity.this);
 			byte[] myPubModBA = Base64.decode(pubMod, Base64.DEFAULT);
@@ -201,10 +203,11 @@ public class MyKeyUtils {
 					+ myPubModBI + " while the exponent is " + myPubExpBI
 					+ " === private key modulus is " + myPrivateModBI
 					+ " and exponent is " + myPrivateExpBI);	
+			return true;
 		}
 	}
 	
-	public static void generateKeys(int keySize, Context context) {
+	public static boolean generateKeys(int keySize, Context context) {
 		Log.i(TAG, "keys not found, generating now");
 		try {
 
@@ -232,6 +235,8 @@ public class MyKeyUtils {
 			 * save the private key to the app's SharedPreferences
 			 */
 			savePrivateKey(priv, context);
+			
+			return true;
 
 		} catch (NoSuchAlgorithmException e) {
 			Log.e(TAG, "RSA algorithm not available", e);
@@ -242,6 +247,7 @@ public class MyKeyUtils {
 		 * catch (IOException e) { Log.e(TAG,
 		 * "Having trouble saving key file", e); }
 		 */
+		return false;
 	}
 	
 	public static void savePublicKey(String mod, String exp, Context context) {
@@ -267,9 +273,9 @@ public class MyKeyUtils {
 
 		try {
 			String pubModBase64Str = Base64.encodeToString(pubModBA,
-					Base64.DEFAULT);
+					Base64.NO_WRAP);
 			String pubExpBase64Str = Base64.encodeToString(pubExpBA,
-					Base64.DEFAULT);
+					Base64.NO_WRAP);
 
 			Log.i(TAG, "the modulus of the current user's public key is "
 					+ pubModBI + " and the exponent is " + pubExpBI
@@ -297,9 +303,9 @@ public class MyKeyUtils {
 
 		try {
 			String privateModBase64Str = Base64.encodeToString(privateModBA,
-					Base64.DEFAULT);
+					Base64.NO_WRAP);
 			String privateExpBase64Str = Base64.encodeToString(privateExpBA,
-					Base64.DEFAULT);
+					Base64.NO_WRAP);
 			Log.i(TAG, "the modulus of the current user's private key is "
 					+ privateModBI + " and the exponent is " + privateExpBI
 					+ " | encoded module is " + privateModBase64Str

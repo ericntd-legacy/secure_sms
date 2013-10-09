@@ -75,8 +75,10 @@ public class MainActivity extends Activity {
 	private SmsReceiver smsReceiver;
 
 	// sharedpreferences
-
-	//private final String PREF_RECIPIENT_NUM = "RecipientNum";
+	public static final String MY_PREFS = "MyPrefs";
+	public static final String DEFAULT_SERVER_NUM = "+6584781395";
+	public static final String SERVER_NUM = "ServerNum";
+	public static final int DEFAULT_KEY_SIZE = 1024;
 
 	// intents
 	private final String INTENT_SOURCE = "Source";
@@ -105,6 +107,20 @@ public class MainActivity extends Activity {
 		     Log.d(TAG, "algo " + service.getAlgorithm());
 		   }
 		}*/
+		/*
+		 * Initialise sharedpreferences
+		 * for testing only, the server's number should be set in Settings
+		 */
+		SharedPreferences prefs = getSharedPreferences(MY_PREFS, Context.MODE_PRIVATE);
+		SharedPreferences.Editor prefsEditor = prefs.edit();
+		prefsEditor.putString(SERVER_NUM, DEFAULT_SERVER_NUM);
+		prefsEditor.commit();
+		
+		//clear the sharedpreferences of default_server_num for testing
+		prefs = getSharedPreferences(DEFAULT_SERVER_NUM, Context.MODE_PRIVATE);
+		prefsEditor = prefs.edit();
+		prefsEditor.clear();
+		prefsEditor.commit();
 
 		debugMessages = (TextView) findViewById(R.id.DebugMessages);
 		debugMessages.setMovementMethod(new ScrollingMovementMethod());
@@ -172,14 +188,18 @@ public class MainActivity extends Activity {
 		// sendEncryptedMessage(message);
 		
 		// TODO Check keys in SharedPreferences for server's number +6584781395
-		SharedPreferences prefs = getSharedPreferences(MyKeyUtils.DEFAULT_CONTACT_NUM, Context.MODE_PRIVATE);
+		/*SharedPreferences prefs = getSharedPreferences(SERVER_NUM, Context.MODE_PRIVATE);
 		String contactPubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
 		String contactPubExp = prefs.getString(MyKeyUtils.PREF_PUBLIC_EXP, MyKeyUtils.DEFAULT_PREF);
 		if (!contactPubMod.isEmpty()&&!contactPubExp.isEmpty()) {
-			Log.i(TAG, "public key stored for "+MyKeyUtils.DEFAULT_CONTACT_NUM+" with mod: "+contactPubMod+" and exp: "+contactPubExp);
+			Log.i(TAG, "public key stored for "+SERVER_NUM+" with mod: "+contactPubMod+" and exp: "+contactPubExp);
 		} else {
-			Log.w(TAG, "public key not found for "+MyKeyUtils.DEFAULT_CONTACT_NUM+" so where did it go?");
-		}
+			Log.w(TAG, "public key not found for "+SERVER_NUM+" so where did it go?");
+		}*/
+		
+		//doBindService();
+		Intent serviceIntent = new Intent(this, SendReceiveService.class);
+		startService(serviceIntent);
 	}
 
 	@Override
@@ -210,7 +230,10 @@ public class MainActivity extends Activity {
 	@Override
 	public void onDestroy() {
 		Log.i(TAG, "onDestroy");
-		// doUnbindService();
+		//doUnbindService();
+		Intent serviceIntent = new Intent(this, SendReceiveService.class);
+		stopService(serviceIntent);
+		
 		super.onDestroy();
 	}
 
@@ -539,6 +562,12 @@ public class MainActivity extends Activity {
 
 					MyUtils.alert("Please enter a message", MainActivity.this);
 				} else {
+					// TODO check if a key is stored for the contact, if not prompt user to request for contact's key
+					RSAPublicKeySpec pubKeySpec = MyKeyUtils.getRecipientsPublicKey(recipientNum, getApplicationContext()); 
+					if (pubKeySpec==null) {
+						// prompt user to request for a key
+					}
+					
 					smsSender = new SmsSender(recipientNum);
 					smsSender.sendSecureSMS(getApplicationContext(), measurementStr);
 

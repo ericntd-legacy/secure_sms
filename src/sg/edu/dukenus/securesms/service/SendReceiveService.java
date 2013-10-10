@@ -44,8 +44,8 @@ public class SendReceiveService extends Service {
 	// intent others
 	private final String INTENT_SOURCE = "Source";
 	
-	private SmsReceiver smsReceiver;
-	private static final String ACTION="android.provider.Telephony.SMS_RECEIVED";
+	//private SmsReceiver smsReceiver;
+	//private static final String ACTION="android.provider.Telephony.SMS_RECEIVED";
 	private SmsSender smsSender;
 
 	private NotificationManager mNM;
@@ -67,10 +67,10 @@ public class SendReceiveService extends Service {
 		showNotification();
 		
 		// TODO register the broadcastlistener to listen for incoming SMSs
-		final IntentFilter theFilter = new IntentFilter();
-        theFilter.addAction(ACTION);
-        this.registerReceiver(this.smsReceiver, theFilter);
-		smsReceiver = new SmsReceiver();
+		//final IntentFilter theFilter = new IntentFilter();
+        //theFilter.addAction(ACTION);
+        //this.registerReceiver(this.smsReceiver, theFilter);
+		//smsReceiver = new SmsReceiver();
 		
 		// TODO check keys
 		SharedPreferences prefs = getSharedPreferences(MainActivity.DEFAULT_SERVER_NUM, Context.MODE_PRIVATE);
@@ -84,7 +84,7 @@ public class SendReceiveService extends Service {
 			// TODO check if own key pair exists, if yes, send a key exchange message to server in order to get key exchange message back
 			// if own key pair does not exit, generate one and then request for key from server
 			// should probably do this in a separate thread?
-			requestForKey(MainActivity.DEFAULT_SERVER_NUM);
+			//MyKeyUtils.requestForKey(MainActivity.DEFAULT_SERVER_NUM, getApplicationContext());
 		}
 		
 		mStartMode = 1;
@@ -151,18 +151,5 @@ public class SendReceiveService extends Service {
 
 		// Set the info for the views that show in the notification panel.
 		//notification.setLatestEventInfo(this, "notification panel view", text, contentIntent);
-	}
-	
-	private void requestForKey(String contactNum) {
-		boolean keys = MyKeyUtils.getKeys(MainActivity.DEFAULT_KEY_SIZE, getApplicationContext());
-		
-		if (keys) {
-			this.smsSender = new SmsSender(contactNum);
-		
-			smsSender.sendKeyExchangeSMS(getApplicationContext());
-		} else {
-			Log.e(TAG, "could not find exisiting keys or generate new keys");
-		}
-		
 	}
 }

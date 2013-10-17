@@ -656,7 +656,7 @@ public class MainActivity extends Activity {
 		prefs = getSharedPreferences(contactNum, Context.MODE_PRIVATE);
 		String pubMod = prefs.getString(MyKeyUtils.PREF_PUBLIC_MOD, MyKeyUtils.DEFAULT_PREF);
 		
-		Log.w(TAG, "public modulus updated to "+pubMod);
+		Log.w(TAG, "public modulus updated to "+pubMod + " for "+contactNum);
 	}
 	
 	private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
